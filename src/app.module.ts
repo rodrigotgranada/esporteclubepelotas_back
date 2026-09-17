@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Logger } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller.js';
@@ -17,6 +17,15 @@ import { StorageModule } from './common/providers/storage/storage.module.js';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         uri: configService.get<string>('MONGODB_URI'),
+        connectionFactory: (connection) => {
+          connection.on('connected', () => {
+            Logger.log('✅ Banco de Dados Conectado (MongoDB)', 'MongooseModule');
+          });
+          connection.on('error', (error) => {
+            Logger.error(`❌ Erro no MongoDB: ${error.message}`, '', 'MongooseModule');
+          });
+          return connection;
+        },
       }),
       inject: [ConfigService],
     }),
