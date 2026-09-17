@@ -21,7 +21,7 @@ import { StorageModule } from './common/providers/storage/storage.module.js';
           connection.on('connected', () => {
             Logger.log('✅ Banco de Dados Conectado (MongoDB)', 'MongooseModule');
           });
-          connection.on('error', (error) => {
+          connection.on('error', (error: Error) => {
             Logger.error(`❌ Erro no MongoDB: ${error.message}`, '', 'MongooseModule');
           });
           return connection;
