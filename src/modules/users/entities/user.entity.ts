@@ -12,6 +12,7 @@ export class UserEntity {
   cpf: string;
   avatarUrl?: string;
   role: string;
+  status: string;
   isActive: boolean;
 
   constructor(partial: Partial<UserEntity>) {

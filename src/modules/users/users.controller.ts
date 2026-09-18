@@ -1,5 +1,7 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Put, UseGuards, UseInterceptors, UploadedFile, Req } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Put, UseGuards, UseInterceptors, UploadedFile, Req, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
 import { UsersService } from './users.service.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -13,11 +15,50 @@ export class UsersController {
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a new user' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'string',
+          description: 'JSON stringified CreateUserDto',
+        },
+        avatar: {
+          type: 'string',
+          format: 'binary',
+          description: 'Avatar image file (optional)',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 201, description: 'User successfully created.' })
   @ApiResponse({ status: 400, description: 'Bad Request - Validation failed.' })
   @ApiResponse({ status: 409, description: 'Conflict - Email or CPF already in use.' })
-  async register(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  @UseInterceptors(FileInterceptor('avatar'))
+  async register(
+    @Body('data') dataStr: string,
+    @UploadedFile() file?: any,
+  ) {
+    if (!dataStr) {
+      throw new BadRequestException('Data payload is missing');
+    }
+    
+    let createUserDto: CreateUserDto;
+    try {
+      const parsed = JSON.parse(dataStr);
+      createUserDto = plainToInstance(CreateUserDto, parsed);
+    } catch (err) {
+      throw new BadRequestException('Invalid JSON payload');
+    }
+
+    const errors = await validate(createUserDto, { whitelist: true, forbidNonWhitelisted: true });
+    if (errors.length > 0) {
+      throw new BadRequestException(errors);
+    }
+
+    // Passamos o DTO e o File para o Service
+    return this.usersService.createWithAvatar(createUserDto, file);
   }
 
   @Put('me/avatar')

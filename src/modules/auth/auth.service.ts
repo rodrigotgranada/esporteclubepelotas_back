@@ -4,6 +4,8 @@ import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import { UserEntity } from '../users/entities/user.entity.js';
+import { VerifyEmailDto } from './dto/verify-email.dto.js';
+import { UserStatus } from '../users/schemas/user.schema.js';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +19,10 @@ export class AuthService {
     
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Invalid credentials or inactive account');
+    }
+
+    if (user.status === UserStatus.PENDING) {
+      throw new UnauthorizedException({ message: 'PENDING_VERIFICATION', email: user.email });
     }
 
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.passwordHash);
@@ -39,6 +45,38 @@ export class AuthService {
       isActive: user.isActive,
       passwordHash: user.passwordHash,
       cpf: user.cpf,
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      user: userEntity,
+    };
+  }
+
+  async verifyEmail(verifyDto: VerifyEmailDto) {
+    const user = await this.usersService.verifyUserCode(verifyDto.email, verifyDto.code);
+    
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Auto-login after successful verification
+    const payload = { sub: user._id, email: user.email, role: user.role };
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+
+    const userEntity = new UserEntity({
+      id: user._id.toString(),
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      isActive: user.isActive,
+      passwordHash: user.passwordHash,
+      cpf: user.cpf,
+      avatarUrl: user.avatarUrl,
     });
 
     return {

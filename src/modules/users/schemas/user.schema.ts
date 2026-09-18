@@ -11,6 +11,12 @@ export enum UserRole {
   OWNER = 'OWNER',
 }
 
+export enum UserStatus {
+  PENDING = 'PENDING',
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+}
+
 export enum ShirtSize {
   P = 'P',
   M = 'M',
@@ -107,6 +113,12 @@ export class User {
 
   @Prop({ type: PreferencesSchema, default: () => ({ receiveNewsletter: true }) })
   preferences: Preferences;
+
+  @Prop({ type: String, enum: UserStatus, default: UserStatus.PENDING })
+  status: UserStatus;
+
+  @Prop({ type: String })
+  confirmationCode?: string;
 
   @Prop({ type: Boolean, default: true })
   isActive: boolean;
