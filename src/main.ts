@@ -1,42 +1,43 @@
 import { NestFactory, Reflector } from '@nestjs/core';
+import { ValidationPipe, ClassSerializerInterceptor } from '@nestjs/common';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
-import { Logger, ValidationPipe, ClassSerializerInterceptor } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  
-  // CORS
-  app.enableCors({
-    origin: 'http://localhost:7999',
-    credentials: true,
-  });
-  
-  // Security
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  // Segurança da Borda
   app.use(helmet());
-  
-  // Validation and Serialization
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    transform: true,
-  }));
+  app.enableCors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true, // Necessário para enviar cookies (Refresh Token)
+  });
+
+  // Observabilidade
+  app.useLogger(app.get(Logger));
+
+  // Validação Global
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+  // Parse de Cookies
+  app.use(cookieParser());
+
+  // Serialização Global (Prevenção de vazamento de dados via @Exclude)
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
-  
-  // Swagger Setup
-  const config = new DocumentBuilder()
-    .setTitle('ECP API')
-    .setDescription('Esporte Clube Pelotas API')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
-  
-  // Graceful Shutdown
+
+  // Graceful shutdown
   app.enableShutdownHooks();
 
-  await app.listen(process.env.PORT ?? 7998);
-  Logger.log('✅ Banco de Dados Conectado (MongoDB)', 'Database');
+  const port = process.env.PORT || 3001;
+  await app.listen(port);
+  console.log(`Backend is running on port ${port}`);
 }
 bootstrap();

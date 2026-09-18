@@ -1,5 +1,6 @@
-import { Module, Logger } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { LoggerModule } from 'nestjs-pino';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
@@ -13,6 +14,21 @@ import { StorageModule } from './common/providers/storage/storage.module.js';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+    }),
+    LoggerModule.forRoot({
+      pinoHttp: {
+        transport: process.env.NODE_ENV !== 'production'
+          ? {
+              target: 'pino-pretty',
+              options: {
+                singleLine: true,
+                colorize: true,
+                translateTime: 'SYS:standard',
+                ignore: 'pid,hostname,req,res,responseTime',
+              },
+            }
+          : undefined,
+      },
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],

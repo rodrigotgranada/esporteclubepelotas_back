@@ -4,12 +4,13 @@ import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { User, UserDocument } from './schemas/user.schema.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
+import { UserEntity } from './entities/user.entity.js';
 
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
+  async create(createUserDto: CreateUserDto): Promise<UserEntity> {
     const { email, cpf, password, ...rest } = createUserDto;
 
     // Check if email or CPF already exists
@@ -40,10 +41,18 @@ export class UsersService {
 
     const savedUser = await newUser.save();
     
-    // Return user without password
+    // Converte para Entity aplicando @Exclude do ClassSerializerInterceptor
     const userObject = savedUser.toObject();
-    delete (userObject as any).passwordHash;
-    return userObject as User;
+    return new UserEntity({
+      id: userObject._id.toString(),
+      firstName: userObject.firstName,
+      lastName: userObject.lastName,
+      email: userObject.email,
+      passwordHash: userObject.passwordHash,
+      cpf: userObject.cpf,
+      role: userObject.role,
+      isActive: userObject.isActive,
+    });
   }
 
   async findByEmail(email: string): Promise<UserDocument | null> {
