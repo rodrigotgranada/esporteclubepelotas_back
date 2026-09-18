@@ -8,6 +8,7 @@ import { UsersModule } from './modules/users/users.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { MailModule } from './common/providers/mail/mail.module.js';
 import { StorageModule } from './common/providers/storage/storage.module.js';
+import { UploadsModule } from './modules/uploads/uploads.module.js';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { StorageModule } from './common/providers/storage/storage.module.js';
     StorageModule,
     UsersModule,
     AuthModule,
+    UploadsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

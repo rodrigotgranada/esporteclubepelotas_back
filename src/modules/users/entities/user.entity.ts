@@ -10,6 +10,7 @@ export class UserEntity {
   passwordHash: string;
   
   cpf: string;
+  avatarUrl?: string;
   role: string;
   isActive: boolean;
 
