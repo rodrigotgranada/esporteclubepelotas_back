@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Res, Req, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Get, Body, HttpCode, HttpStatus, Res, Req, UnauthorizedException } from '@nestjs/common';
 import type { Response, Request } from 'express';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -47,5 +47,19 @@ export class AuthController {
     });
 
     return { accessToken };
+  }
+
+  @Get('env-test')
+  @ApiOperation({ summary: 'Test Environment Variables (Dev Only)' })
+  envTest() {
+    const dbUri = process.env.MONGODB_URI || '';
+    // Retorna apenas a parte final do banco para segurança (não vazar senhas)
+    const dbName = dbUri.split('/').pop()?.split('?')[0] || 'unknown';
+    
+    return {
+      environment: process.env.NODE_ENV || 'development',
+      databaseSuffix: dbName,
+      message: 'If this is DEV, the DB suffix should be -dev or similar!',
+    };
   }
 }
