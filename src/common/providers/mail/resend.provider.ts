@@ -23,13 +23,21 @@ export class ResendMailProvider implements IMailProvider {
 
   async sendMail(to: string, subject: string, body: string): Promise<boolean> {
     try {
-      await this.resend.emails.send({
-        from: 'Esporte Clube Pelotas <no-reply@ecpelotas.com.br>',
+      const fromEmail = this.configService.get<string>('MAIL_FROM_ADDRESS') || 'onboarding@resend.dev';
+      
+      const { data, error } = await this.resend.emails.send({
+        from: `Esporte Clube Pelotas <${fromEmail}>`,
         to,
         subject,
         html: body,
       });
-      this.logger.log(`E-mail enviado via Resend para ${to}`);
+
+      if (error) {
+        this.logger.error(`Erro da API do Resend: ${error.message}`);
+        return false;
+      }
+
+      this.logger.log(`E-mail enviado via Resend para ${to} (ID: ${data?.id})`);
       return true;
     } catch (error) {
       this.logger.error(`Erro ao enviar e-mail via Resend: ${(error as Error).message}`);

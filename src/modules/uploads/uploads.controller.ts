@@ -1,12 +1,13 @@
 import { Controller, Post, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
-import { FirebaseStorageProvider } from '../../common/providers/storage/firebase.provider.js';
+import { Inject } from '@nestjs/common';
+import { STORAGE_PROVIDER_TOKEN, type IStorageProvider } from '../../common/providers/storage/storage.interface.js';
 
 @ApiTags('Uploads')
 @Controller('uploads')
 export class UploadsController {
-  constructor(private readonly storageProvider: FirebaseStorageProvider) {}
+  constructor(@Inject(STORAGE_PROVIDER_TOKEN) private readonly storageProvider: IStorageProvider) {}
 
   @Post('image')
   @ApiOperation({ summary: 'Upload an image and get its public URL' })
@@ -35,7 +36,7 @@ export class UploadsController {
 
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const fileName = `avatar-${uniqueSuffix}.${file.mimetype.split('/')[1] || 'jpg'}`;
-    const folder = process.env.NODE_ENV === 'production' ? 'prod/avatars' : 'dev/avatars';
+    const folder = process.env.NODE_ENV === 'production' ? 'prod/avatars' : 'avatars';
 
     const url = await this.storageProvider.uploadFile(file.buffer, fileName, folder, file.mimetype);
 

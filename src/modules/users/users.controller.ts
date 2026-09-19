@@ -1,9 +1,10 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Put, UseGuards, UseInterceptors, UploadedFile, Req, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Put, UseGuards, UseInterceptors, UploadedFile, Req, BadRequestException, ConflictException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { UsersService } from './users.service.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
+import { CheckAvailabilityDto } from './dto/check-availability.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 
@@ -81,5 +82,16 @@ export class UsersController {
   async uploadAvatar(@UploadedFile() file: any, @Req() req: any) {
     const userId = req.user.sub || req.user.id;
     return this.usersService.updateAvatar(userId, file);
+  }
+
+  @Post('check-availability')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Check if email or CPF is available' })
+  async checkAvailability(@Body() body: CheckAvailabilityDto) {
+    const isAvailable = await this.usersService.checkAvailability(body.type, body.value);
+    if (!isAvailable) {
+      throw new ConflictException(`${body.type === 'email' ? 'Email' : 'CPF'} already in use`);
+    }
+    return { available: true };
   }
 }

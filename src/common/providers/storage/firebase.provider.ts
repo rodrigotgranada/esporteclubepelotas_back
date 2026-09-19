@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
 import { IStorageProvider } from './storage.interface.js';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class FirebaseStorageProvider implements IStorageProvider {
@@ -37,11 +38,19 @@ export class FirebaseStorageProvider implements IStorageProvider {
     }
 
     const file = this.bucket.file(`${folder}/${fileName}`);
+    const downloadToken = crypto.randomUUID();
+
     await file.save(fileBuffer, {
-      metadata: { contentType: mimeType },
+      metadata: { 
+        contentType: mimeType,
+        metadata: {
+          firebaseStorageDownloadTokens: downloadToken
+        }
+      },
       public: true,
     });
     
-    return `https://storage.googleapis.com/${this.bucket.name}/${folder}/${fileName}`;
+    // Adicionamos o token gerado na URL para que o Firebase Console e o Client SDK reconheçam
+    return `https://firebasestorage.googleapis.com/v0/b/${this.bucket.name}/o/${encodeURIComponent(`${folder}/${fileName}`)}?alt=media&token=${downloadToken}`;
   }
 }

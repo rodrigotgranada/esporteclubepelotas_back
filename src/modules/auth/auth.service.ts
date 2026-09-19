@@ -15,11 +15,13 @@ export class AuthService {
   ) {}
 
   async login(loginDto: LoginDto) {
-    const user = await this.usersService.findByEmail(loginDto.email);
+    const user = await this.usersService.findByCpf(loginDto.cpf);
     
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Invalid credentials or inactive account');
     }
+
+    this.usersService.checkLockout(user);
 
     if (user.status === UserStatus.PENDING) {
       throw new UnauthorizedException({ message: 'PENDING_VERIFICATION', email: user.email });
@@ -28,8 +30,11 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.passwordHash);
     
     if (!isPasswordValid) {
+      await this.usersService.handleFailedLoginAttempt(user);
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    await this.usersService.resetLoginAttempts(user);
 
     const payload = { sub: user._id, email: user.email, role: user.role };
     
@@ -86,6 +91,10 @@ export class AuthService {
     };
   }
 
+  async resendCode(email: string) {
+    return this.usersService.resendCode(email);
+  }
+
   async refreshTokens(token: string) {
     try {
       const payload = this.jwtService.verify(token);
@@ -107,5 +116,13 @@ export class AuthService {
     } catch (e) {
       throw new UnauthorizedException('Invalid refresh token');
     }
+  }
+
+  async forgotPassword(cpf: string) {
+    return this.usersService.generatePasswordResetToken(cpf);
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    return this.usersService.resetPassword(token, newPassword);
   }
 }

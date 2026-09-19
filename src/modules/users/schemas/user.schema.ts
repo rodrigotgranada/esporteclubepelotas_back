@@ -15,6 +15,7 @@ export enum UserStatus {
   PENDING = 'PENDING',
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
+  BLOCKED = 'BLOCKED',
 }
 
 export enum ShirtSize {
@@ -117,11 +118,20 @@ export class User {
   @Prop({ type: String, enum: UserStatus, default: UserStatus.PENDING })
   status: UserStatus;
 
-  @Prop({ type: String })
-  confirmationCode?: string;
-
   @Prop({ type: Boolean, default: true })
   isActive: boolean;
+
+  @Prop({ type: Number, default: 0 })
+  failedLoginAttempts: number;
+
+  @Prop({ type: Date, default: null })
+  lockoutUntil?: Date;
+
+  @Prop({ type: String })
+  resetPasswordToken?: string;
+
+  @Prop({ type: Date })
+  resetPasswordExpires?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

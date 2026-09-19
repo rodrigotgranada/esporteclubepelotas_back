@@ -1,7 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MAIL_PROVIDER_TOKEN } from './mail.interface.js';
-import { ResendMailProvider } from './resend.provider.js';
+import { NodemailerMailProvider } from './nodemailer.provider.js';
 
 @Global()
 @Module({
@@ -9,8 +9,7 @@ import { ResendMailProvider } from './resend.provider.js';
     {
       provide: MAIL_PROVIDER_TOKEN,
       useFactory: (configService: ConfigService) => {
-        // Futuramente pode ser lido de MAIL_PROVIDER=aws_ses | resend
-        return new ResendMailProvider(configService);
+        return new NodemailerMailProvider(configService);
       },
       inject: [ConfigService],
     },
