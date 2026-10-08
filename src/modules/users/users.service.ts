@@ -369,7 +369,9 @@ export class UsersService {
   }
 
   async findByCpf(cpf: string): Promise<UserDocument | null> {
-    return this.userModel.findOne({ cpf }).populate('role').exec();
+    const cleanCpf = cpf.replace(/\D/g, '');
+    const formattedCpf = cleanCpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    return this.userModel.findOne({ cpf: { $in: [cpf, cleanCpf, formattedCpf] } }).populate('role').exec();
   }
 
   async findById(id: string): Promise<UserDocument | null> {
