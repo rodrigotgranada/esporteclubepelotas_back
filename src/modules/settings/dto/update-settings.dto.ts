@@ -16,9 +16,9 @@ export class UpdateSettingsDto {
 
   @IsOptional()
   socialMedia?: {
-    instagram?: string;
-    facebook?: string;
-    x?: string;
-    youtube?: string;
+    instagram?: string[];
+    facebook?: string[];
+    x?: string[];
+    youtube?: string[];
   };
 }

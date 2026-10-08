@@ -14,12 +14,12 @@ export class Setting {
   @Prop({ default: 'Esporte Clube Pelotas' })
   clubName: string;
 
-  @Prop({ type: Object, default: { instagram: '', facebook: '', x: '', youtube: '' } })
+  @Prop({ type: Object, default: { instagram: [], facebook: [], x: [], youtube: [] } })
   socialMedia: {
-    instagram?: string;
-    facebook?: string;
-    x?: string;
-    youtube?: string;
+    instagram?: string[];
+    facebook?: string[];
+    x?: string[];
+    youtube?: string[];
   };
 }
 
