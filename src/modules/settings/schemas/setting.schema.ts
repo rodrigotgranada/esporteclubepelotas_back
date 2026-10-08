@@ -13,6 +13,14 @@ export class Setting {
 
   @Prop({ default: 'Esporte Clube Pelotas' })
   clubName: string;
+
+  @Prop({ type: Object, default: { instagram: '', facebook: '', x: '', youtube: '' } })
+  socialMedia: {
+    instagram?: string;
+    facebook?: string;
+    x?: string;
+    youtube?: string;
+  };
 }
 
 export const SettingSchema = SchemaFactory.createForClass(Setting);

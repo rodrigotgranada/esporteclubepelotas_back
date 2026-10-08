@@ -13,4 +13,12 @@ export class UpdateSettingsDto {
   @IsArray()
   @IsString({ each: true })
   clubLogoGallery?: string[];
+
+  @IsOptional()
+  socialMedia?: {
+    instagram?: string;
+    facebook?: string;
+    x?: string;
+    youtube?: string;
+  };
 }
