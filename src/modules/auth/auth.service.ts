@@ -23,9 +23,7 @@ export class AuthService {
 
     this.usersService.checkLockout(user);
 
-    if (user.status === UserStatus.PENDING) {
-      throw new UnauthorizedException({ message: 'PENDING_VERIFICATION', email: user.email });
-    }
+
 
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.passwordHash);
     
@@ -36,20 +34,30 @@ export class AuthService {
 
     await this.usersService.resetLoginAttempts(user);
 
-    const payload = { sub: user._id, email: user.email, role: user.role };
+    const payload = { sub: user._id, email: user.email, role: user.role, status: user.status, tokenVersion: user.tokenVersion || 1 };
     
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' }); // 7 days
 
+    const userObj = user.toObject();
+
     const userEntity = new UserEntity({
-      id: user._id.toString(),
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      role: user.role,
-      isActive: user.isActive,
-      passwordHash: user.passwordHash,
-      cpf: user.cpf,
+      id: userObj._id.toString(),
+      firstName: userObj.firstName,
+      lastName: userObj.lastName,
+      email: userObj.email,
+      role: userObj.role,
+      status: userObj.status,
+      isActive: userObj.isActive,
+      passwordHash: userObj.passwordHash,
+      cpf: userObj.cpf,
+      avatarUrl: userObj.avatarUrl,
+      addresses: userObj.addresses,
+      phones: userObj.phones,
+      birthDate: userObj.birthDate,
+      createdAt: userObj.createdAt,
+      updatedAt: userObj.updatedAt,
+      emailVerified: userObj.emailVerified,
     });
 
     return {
@@ -67,21 +75,29 @@ export class AuthService {
     }
 
     // Auto-login after successful verification
-    const payload = { sub: user._id, email: user.email, role: user.role };
+    const payload = { sub: user._id, email: user.email, role: user.role, status: user.status, tokenVersion: user.tokenVersion || 1 };
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
 
+    const userObj = user.toObject();
+
     const userEntity = new UserEntity({
-      id: user._id.toString(),
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-      isActive: user.isActive,
-      passwordHash: user.passwordHash,
-      cpf: user.cpf,
-      avatarUrl: user.avatarUrl,
+      id: userObj._id.toString(),
+      firstName: userObj.firstName,
+      lastName: userObj.lastName,
+      email: userObj.email,
+      role: userObj.role,
+      status: userObj.status,
+      isActive: userObj.isActive,
+      passwordHash: userObj.passwordHash,
+      cpf: userObj.cpf,
+      avatarUrl: userObj.avatarUrl,
+      addresses: userObj.addresses,
+      phones: userObj.phones,
+      birthDate: userObj.birthDate,
+      createdAt: userObj.createdAt,
+      updatedAt: userObj.updatedAt,
+      emailVerified: userObj.emailVerified,
     });
 
     return {
@@ -104,7 +120,7 @@ export class AuthService {
         throw new UnauthorizedException('Invalid token or inactive account');
       }
 
-      const newPayload = { sub: user._id, email: user.email, role: user.role };
+      const newPayload = { sub: user._id, email: user.email, role: user.role, status: user.status, tokenVersion: user.tokenVersion || 1 };
       
       const accessToken = this.jwtService.sign(newPayload);
       const refreshToken = this.jwtService.sign(newPayload, { expiresIn: '7d' });

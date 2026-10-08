@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export type UserDocument = User & Document;
 
@@ -36,6 +36,9 @@ export class Phone {
 
   @Prop({ type: Boolean, default: false })
   isPrimary: boolean;
+
+  @Prop({ type: Boolean, default: false })
+  isVerified: boolean;
 }
 
 export const PhoneSchema = SchemaFactory.createForClass(Phone);
@@ -76,6 +79,9 @@ export class Preferences {
 
   @Prop({ type: Boolean, default: true })
   receiveNewsletter: boolean;
+
+  @Prop({ type: Boolean, default: false })
+  receiveSms: boolean;
 }
 
 export const PreferencesSchema = SchemaFactory.createForClass(Preferences);
@@ -91,10 +97,13 @@ export class User {
   @Prop({ type: String, required: true, unique: true, index: true })
   email: string;
 
+  @Prop({ type: Boolean, default: false })
+  emailVerified: boolean;
+
   @Prop({ type: String, required: true })
   passwordHash: string;
 
-  @Prop({ type: String, required: true, unique: true })
+  @Prop({ type: String, required: true, unique: true, index: true })
   cpf: string;
 
   @Prop({ type: Date, required: true })
@@ -109,10 +118,10 @@ export class User {
   @Prop({ type: [AddressSchema], required: true })
   addresses: Address[];
 
-  @Prop({ type: String, enum: UserRole, default: UserRole.USER })
-  role: UserRole;
+  @Prop({ type: Types.ObjectId, ref: 'Role', required: true })
+  role: Types.ObjectId;
 
-  @Prop({ type: PreferencesSchema, default: () => ({ receiveNewsletter: true }) })
+  @Prop({ type: PreferencesSchema, default: () => ({ receiveNewsletter: true, receiveSms: false }) })
   preferences: Preferences;
 
   @Prop({ type: String, enum: UserStatus, default: UserStatus.PENDING })
@@ -132,6 +141,25 @@ export class User {
 
   @Prop({ type: Date })
   resetPasswordExpires?: Date;
+
+  @Prop({
+    type: [{
+      type: { type: String, enum: ['email', 'phone'], required: true },
+      newValue: { type: String, required: true },
+      code: { type: String, required: true },
+      expiresAt: { type: Date, required: true }
+    }],
+    default: []
+  })
+  pendingChanges: Array<{
+    type: 'email' | 'phone';
+    newValue: string;
+    code: string;
+    expiresAt: Date;
+  }>;
+
+  @Prop({ type: Number, default: 1 })
+  tokenVersion: number;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

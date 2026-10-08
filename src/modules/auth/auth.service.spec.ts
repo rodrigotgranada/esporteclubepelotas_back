@@ -21,7 +21,11 @@ describe('AuthService', () => {
           provide: UsersService,
           useValue: {
             findByEmail: vi.fn(),
+            findByCpf: vi.fn(),
             findById: vi.fn(),
+            checkLockout: vi.fn(),
+            resetLoginAttempts: vi.fn(),
+            handleFailedLoginAttempt: vi.fn(),
           },
         },
         {
@@ -45,15 +49,15 @@ describe('AuthService', () => {
 
   describe('login', () => {
     it('should throw UnauthorizedException if user not found', async () => {
-      vi.spyOn(usersService, 'findByEmail').mockResolvedValue(null);
-      await expect(service.login({ email: 'test@test.com', password: '123' })).rejects.toThrow(UnauthorizedException);
+      vi.spyOn(usersService, 'findByCpf').mockResolvedValue(null);
+      await expect(service.login({ cpf: '00000000000', password: '123' })).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException if password invalid', async () => {
-      vi.spyOn(usersService, 'findByEmail').mockResolvedValue({ isActive: true, passwordHash: 'hash' } as any);
+      vi.spyOn(usersService, 'findByCpf').mockResolvedValue({ isActive: true, passwordHash: 'hash', failedLoginAttempts: 0 } as any);
       (bcrypt.compare as any).mockResolvedValue(false);
 
-      await expect(service.login({ email: 'test@test.com', password: '123' })).rejects.toThrow(UnauthorizedException);
+      await expect(service.login({ cpf: '00000000000', password: '123' })).rejects.toThrow(UnauthorizedException);
     });
   });
 });
