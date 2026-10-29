@@ -1,23 +1,23 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document } from 'mongoose';
 
 export type RoleDocument = Role & Document;
 
 @Schema({ timestamps: true })
 export class Role {
-  @Prop({ required: true, unique: true })
+  @Prop({ type: String, required: true, unique: true })
   name: string;
 
-  @Prop()
+  @Prop({ type: String })
   label: string;
 
-  @Prop()
+  @Prop({ type: String })
   description: string;
 
   @Prop({ type: [String], default: [] })
   permissions: string[];
 
-  @Prop({ default: false })
+  @Prop({ type: Boolean, default: false })
   isImmutable: boolean; // Protects system roles like OWNER from being deleted or modified by mistake
 }
 
