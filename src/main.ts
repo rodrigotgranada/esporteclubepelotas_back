@@ -11,11 +11,21 @@ async function bootstrap() {
 
   // Segurança da Borda
   app.use(helmet());
+  const allowedOrigins = [
+    (process.env.FRONTEND_URL || 'http://localhost:7999').replace(/\/$/, ''),
+    'http://localhost:7999',
+    'http://127.0.0.1:7999',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+  ];
   app.enableCors({
-    origin: (process.env.FRONTEND_URL || 'http://localhost:7999').replace(
-      /\/$/,
-      '',
-    ),
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
     credentials: true, // Necessário para enviar cookies (Refresh Token)
   });
 

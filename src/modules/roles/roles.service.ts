@@ -8,13 +8,22 @@ export class RolesService {
   constructor(@InjectModel(Role.name) private roleModel: Model<RoleDocument>) {}
 
   async findAll(): Promise<any[]> {
-    return this.roleModel.find().lean().exec();
+    const roles = await this.roleModel.find().lean().exec();
+    return roles.map((r: any) => ({
+      ...r,
+      _id: r._id.toString(),
+      id: r._id.toString(),
+    }));
   }
 
   async findOne(id: string): Promise<any> {
-    const role = await this.roleModel.findById(id).lean().exec();
+    const role: any = await this.roleModel.findById(id).lean().exec();
     if (!role) throw new NotFoundException('Role not found');
-    return role;
+    return {
+      ...role,
+      _id: role._id.toString(),
+      id: role._id.toString(),
+    };
   }
 
   async create(createRoleDto: { name: string; label?: string; description?: string; permissions?: string[] }): Promise<RoleDocument> {

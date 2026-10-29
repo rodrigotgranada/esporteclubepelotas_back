@@ -90,7 +90,7 @@ async function bootstrap() {
       permissions: ['news.manage', 'users.view'],
     },
     {
-      name: 'SOCIETY',
+      name: 'SOCIO',
       label: 'Sócio Torcedor',
       description: 'Sócio torcedor em dia com acesso a benefícios exclusivos.',
       isImmutable: true,
@@ -113,7 +113,7 @@ async function bootstrap() {
   console.log(`✅ ${rolesData.length} roles criadas.`);
 
   // 3. Usuários Iniciais (Ambiente de Testes / Base)
-  console.log('\n👥 [3/5] Criando Usuários com Senha Padronizada...');
+  console.log('\n👥 [3/5] Criando Usuários com Senha Padronizada e Avatares...');
   const defaultPassword = 'SuperSecretPassword123!';
   const saltRounds = 10;
   const passwordHash = await bcrypt.hash(defaultPassword, saltRounds);
@@ -125,6 +125,7 @@ async function bootstrap() {
       email: 'admin@ecpelotas.com.br',
       cpf: '00000000001',
       role: createdRoles['OWNER']._id,
+      avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
     },
     {
       firstName: 'Gestor',
@@ -132,6 +133,7 @@ async function bootstrap() {
       email: 'gestor@ecpelotas.com.br',
       cpf: '00000000002',
       role: createdRoles['ADMIN']._id,
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     },
     {
       firstName: 'Editor',
@@ -139,13 +141,15 @@ async function bootstrap() {
       email: 'editor@ecpelotas.com.br',
       cpf: '00000000003',
       role: createdRoles['EDITOR']._id,
+      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     },
     {
       firstName: 'Sócio',
       lastName: 'Ouro',
       email: 'socio@ecpelotas.com.br',
       cpf: '00000000004',
-      role: createdRoles['SOCIETY']._id,
+      role: createdRoles['SOCIO']._id,
+      avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
     },
     {
       firstName: 'Torcedor',
@@ -153,6 +157,7 @@ async function bootstrap() {
       email: 'torcedor@ecpelotas.com.br',
       cpf: '00000000005',
       role: createdRoles['USER']._id,
+      avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
     },
   ];
 
@@ -162,6 +167,7 @@ async function bootstrap() {
       lastName: u.lastName,
       email: u.email,
       cpf: u.cpf,
+      avatarUrl: u.avatarUrl,
       birthDate: new Date('1990-01-01T00:00:00.000Z'),
       emailVerified: true,
       passwordHash,
@@ -391,12 +397,12 @@ async function bootstrap() {
 
   console.log('\n═════════════════════════════════════════════════════════════════');
   console.log(' 🎉 SEED CONCLUÍDO COM SUCESSO!');
-  console.log(' Credenciais de Acesso Disponíveis:');
-  console.log(' 👑 Owner:    admin@ecpelotas.com.br    / SuperSecretPassword123!');
-  console.log(' 🛡️ Admin:    gestor@ecpelotas.com.br   / SuperSecretPassword123!');
-  console.log(' ✍️ Editor:   editor@ecpelotas.com.br   / SuperSecretPassword123!');
-  console.log(' 🎫 Sócio:    socio@ecpelotas.com.br    / SuperSecretPassword123!');
-  console.log(' ⚽ Torcedor: torcedor@ecpelotas.com.br / SuperSecretPassword123!');
+  console.log(' Credenciais de Acesso Disponíveis para Login (por CPF):');
+  console.log(' 👑 Owner:    CPF: 000.000.000-01 (admin@ecpelotas.com.br)    | Senha: SuperSecretPassword123!');
+  console.log(' 🛡️ Admin:    CPF: 000.000.000-02 (gestor@ecpelotas.com.br)   | Senha: SuperSecretPassword123!');
+  console.log(' ✍️ Editor:   CPF: 000.000.000-03 (editor@ecpelotas.com.br)   | Senha: SuperSecretPassword123!');
+  console.log(' 🎫 Sócio:    CPF: 000.000.000-04 (socio@ecpelotas.com.br)    | Senha: SuperSecretPassword123!');
+  console.log(' ⚽ Torcedor: CPF: 000.000.000-05 (torcedor@ecpelotas.com.br) | Senha: SuperSecretPassword123!');
   console.log('═════════════════════════════════════════════════════════════════\n');
 
   await app.close();

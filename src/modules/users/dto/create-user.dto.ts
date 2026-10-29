@@ -1,6 +1,6 @@
 import { IsString, IsEmail, IsNotEmpty, MinLength, IsOptional, ValidateNested, IsBoolean, IsArray, IsEnum, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ShirtSize, UserRole } from '../schemas/user.schema.js';
+import { ShirtSize } from '../schemas/user.schema.js';
 
 export class PhoneDto {
   @IsString()
@@ -112,7 +112,7 @@ export class CreateUserDto {
   @Type(() => PreferencesDto)
   preferences?: PreferencesDto;
 
-  @IsEnum(UserRole)
+  @IsString()
   @IsOptional()
-  role?: UserRole;
+  role?: string;
 }
