@@ -12,7 +12,7 @@ async function bootstrap() {
   // Segurança da Borda
   app.use(helmet());
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:7999',
+    origin: (process.env.FRONTEND_URL || 'http://localhost:7999').replace(/\/$/, ''),
     credentials: true, // Necessário para enviar cookies (Refresh Token)
   });
 

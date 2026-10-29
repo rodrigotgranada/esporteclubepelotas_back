@@ -1,4 +1,6 @@
 import { Controller, Post, Get, Body, HttpCode, HttpStatus, Res, Req, UnauthorizedException } from '@nestjs/common';
+import { InjectConnection } from '@nestjs/mongoose';
+import type { Connection } from 'mongoose';
 import type { Response, Request } from 'express';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -10,7 +12,10 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    @InjectConnection() private readonly connection: Connection,
+  ) {}
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -101,16 +106,28 @@ export class AuthController {
   }
 
   @Get('env-test')
-  @ApiOperation({ summary: 'Test Environment Variables (Dev Only)' })
+  @ApiOperation({ summary: 'Test Environment Variables & Connections' })
   envTest() {
     const dbUri = process.env.MONGODB_URI || '';
     // Retorna apenas a parte final do banco para segurança (não vazar senhas)
     const dbName = dbUri.split('/').pop()?.split('?')[0] || 'unknown';
-    
+    const storageProject = process.env.FIREBASE_PROJECT_ID || process.env.AWS_BUCKET_NAME || 'unknown';
+    const mongoConnected = Number(this.connection.readyState) === 1;
+    const storageConfigured = Boolean(process.env.FIREBASE_CREDENTIALS_BASE64 || process.env.AWS_ACCESS_KEY);
+
+    const isProd =
+      process.env.APP_ENV === 'production' ||
+      dbName === 'ecp_prod' ||
+      storageProject === 'esporteclubepelotas-admin';
+
     return {
+      stage: isProd ? 'PROD' : 'DEV',
       environment: process.env.NODE_ENV || 'development',
       databaseSuffix: dbName,
-      message: 'If this is DEV, the DB suffix should be -dev or similar!',
+      mongoConnected,
+      storageProvider: process.env.STORAGE_PROVIDER || 'firebase',
+      storageProject,
+      storageConfigured,
     };
   }
 }
