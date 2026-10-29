@@ -1,6 +1,16 @@
-import { Controller, Post, Get, Body, HttpCode, HttpStatus, Res, Req, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  HttpCode,
+  HttpStatus,
+  Res,
+  Req,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
-import type { Connection } from 'mongoose';
+import { Connection } from 'mongoose';
 import type { Response, Request } from 'express';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -21,10 +31,17 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login user' })
   @ApiResponse({ status: 200, description: 'User successfully logged in.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid credentials.' })
-  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const { accessToken, refreshToken, user } = await this.authService.login(loginDto);
-    
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid credentials.',
+  })
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { accessToken, refreshToken, user } =
+      await this.authService.login(loginDto);
+
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -40,8 +57,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Verify user email with confirmation code' })
   @ApiResponse({ status: 200, description: 'Email verified successfully.' })
   @ApiResponse({ status: 400, description: 'Invalid code.' })
-  async verify(@Body() verifyDto: VerifyEmailDto, @Res({ passthrough: true }) res: Response) {
-    const { accessToken, refreshToken, user } = await this.authService.verifyEmail(verifyDto);
+  async verify(
+    @Body() verifyDto: VerifyEmailDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { accessToken, refreshToken, user } =
+      await this.authService.verifyEmail(verifyDto);
 
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
@@ -57,7 +78,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Resend confirmation code' })
   @ApiResponse({ status: 200, description: 'Code resent successfully.' })
-  @ApiResponse({ status: 400, description: 'User not found or already verified.' })
+  @ApiResponse({
+    status: 400,
+    description: 'User not found or already verified.',
+  })
   async resendCode(@Body('email') email: string) {
     if (!email) {
       throw new UnauthorizedException('Email is required');
@@ -69,15 +93,19 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })
-  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const token = req.cookies['refresh_token'];
-    
+
     if (!token) {
       throw new UnauthorizedException('No refresh token provided');
     }
 
-    const { accessToken, refreshToken } = await this.authService.refreshTokens(token);
-    
+    const { accessToken, refreshToken } =
+      await this.authService.refreshTokens(token);
+
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -111,9 +139,14 @@ export class AuthController {
     const dbUri = process.env.MONGODB_URI || '';
     // Retorna apenas a parte final do banco para segurança (não vazar senhas)
     const dbName = dbUri.split('/').pop()?.split('?')[0] || 'unknown';
-    const storageProject = process.env.FIREBASE_PROJECT_ID || process.env.AWS_BUCKET_NAME || 'unknown';
+    const storageProject =
+      process.env.FIREBASE_PROJECT_ID ||
+      process.env.AWS_BUCKET_NAME ||
+      'unknown';
     const mongoConnected = Number(this.connection.readyState) === 1;
-    const storageConfigured = Boolean(process.env.FIREBASE_CREDENTIALS_BASE64 || process.env.AWS_ACCESS_KEY);
+    const storageConfigured = Boolean(
+      process.env.FIREBASE_CREDENTIALS_BASE64 || process.env.AWS_ACCESS_KEY,
+    );
 
     const isProd =
       process.env.APP_ENV === 'production' ||

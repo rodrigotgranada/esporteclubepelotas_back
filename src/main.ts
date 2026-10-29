@@ -12,7 +12,10 @@ async function bootstrap() {
   // Segurança da Borda
   app.use(helmet());
   app.enableCors({
-    origin: (process.env.FRONTEND_URL || 'http://localhost:7999').replace(/\/$/, ''),
+    origin: (process.env.FRONTEND_URL || 'http://localhost:7999').replace(
+      /\/$/,
+      '',
+    ),
     credentials: true, // Necessário para enviar cookies (Refresh Token)
   });
 
@@ -51,4 +54,4 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`Backend is running on port ${port}`);
 }
-bootstrap();
+void bootstrap();
