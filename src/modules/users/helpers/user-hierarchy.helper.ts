@@ -49,3 +49,4 @@ export class UserHierarchyHelper {
     throw new BadRequestException('Ação não permitida para o seu nível de acesso.');
   }
 }
+
