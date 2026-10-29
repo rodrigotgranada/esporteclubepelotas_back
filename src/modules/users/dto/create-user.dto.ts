@@ -14,6 +14,10 @@ export class PhoneDto {
   @IsBoolean()
   @IsOptional()
   isPrimary?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  isVerified?: boolean;
 }
 
 export class AddressDto {
@@ -48,6 +52,10 @@ export class AddressDto {
   @IsBoolean()
   @IsOptional()
   isPrimary?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  isVerified?: boolean;
 }
 
 export class PreferencesDto {

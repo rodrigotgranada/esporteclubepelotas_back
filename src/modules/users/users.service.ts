@@ -55,7 +55,11 @@ export class UsersService {
       passwordHash: obj.passwordHash,
       cpf: obj.cpf,
       avatarUrl: obj.avatarUrl,
-      role: obj.role,
+      role: obj.role
+        ? (typeof obj.role === 'object' && obj.role._id
+            ? { ...obj.role, _id: obj.role._id.toString() }
+            : obj.role.toString())
+        : undefined,
       status: obj.status,
       isActive: obj.isActive,
       birthDate: obj.birthDate,
