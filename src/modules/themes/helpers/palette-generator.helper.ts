@@ -109,7 +109,7 @@ export function generateCampaignPalettes(seedHex: string) {
     textSecondary: hslToHex({ h, s: 40, l: 32 }),
     border: hslToHex({ h, s: 45, l: 88 }),
     success: '#22c55e',
-    error: '#ef4444',
+    error: '#ea580c',
     warning: '#f59e0b',
   };
 
@@ -127,9 +127,10 @@ export function generateCampaignPalettes(seedHex: string) {
     textSecondary: hslToHex({ h, s: 30, l: 80 }),
     border: hslToHex({ h, s: 40, l: 24 }),
     success: '#22c55e',
-    error: '#ef4444',
+    error: '#ea580c',
     warning: '#f59e0b',
   };
 
   return { light, dark };
 }
+

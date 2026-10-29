@@ -44,7 +44,7 @@ export class ThemePalette {
   @Prop({ type: String, required: true, default: '#22c55e' })
   success: string;
 
-  @Prop({ type: String, required: true, default: '#ef4444' })
+  @Prop({ type: String, required: true, default: '#ea580c' })
   error: string;
 
   @Prop({ type: String, required: true, default: '#f59e0b' })

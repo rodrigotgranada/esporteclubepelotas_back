@@ -33,7 +33,7 @@ export class ThemesService {
           textSecondary: '#4b5563',
           border: '#e5e7eb',
           success: '#22c55e',
-          error: '#ef4444',
+          error: '#ea580c',
           warning: '#f59e0b',
         },
         dark: {
@@ -50,7 +50,7 @@ export class ThemesService {
           textSecondary: '#9ca3af',
           border: '#374151',
           success: '#22c55e',
-          error: '#ef4444',
+          error: '#ea580c',
           warning: '#f59e0b',
         },
       });
