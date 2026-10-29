@@ -214,6 +214,8 @@ async function bootstrap() {
         primary: '#fbbf24', // Amarelo Ouro
         secondary: '#1e3a8a', // Azul Royal
         buttonSecondary: '#1e3a8a',
+        buttonPrimaryText: '#1e3a8a',
+        buttonSecondaryText: '#ffffff',
         background: '#f3f4f6',
         surface: '#ffffff',
         header: '#1e3a8a',
@@ -231,6 +233,8 @@ async function bootstrap() {
         primary: '#fbbf24', // Amarelo Ouro
         secondary: '#1e3a8a', // Azul Royal
         buttonSecondary: '#1e3a8a',
+        buttonPrimaryText: '#000000',
+        buttonSecondaryText: '#ffffff',
         background: '#0a0a0a',
         surface: '#171717',
         header: '#111111',

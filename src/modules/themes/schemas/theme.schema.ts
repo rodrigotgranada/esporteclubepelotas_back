@@ -32,6 +32,12 @@ export class ThemePalette {
   @Prop({ type: String, required: true, default: '#1e3a8a' })
   buttonSecondary: string; // Cor de Fundo de Botões Secundários
 
+  @Prop({ type: String, required: false })
+  buttonPrimaryText?: string;
+
+  @Prop({ type: String, required: false })
+  buttonSecondaryText?: string;
+
   @Prop({ type: String, required: true, default: '#ffffff' })
   textPrimary: string;
 
