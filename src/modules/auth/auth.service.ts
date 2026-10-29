@@ -46,7 +46,11 @@ export class AuthService {
       firstName: userObj.firstName,
       lastName: userObj.lastName,
       email: userObj.email,
-      role: userObj.role,
+      role: userObj.role
+        ? (typeof userObj.role === 'object' && userObj.role._id
+            ? { ...userObj.role, _id: userObj.role._id.toString() }
+            : userObj.role.toString())
+        : undefined,
       status: userObj.status,
       isActive: userObj.isActive,
       passwordHash: userObj.passwordHash,
@@ -86,7 +90,11 @@ export class AuthService {
       firstName: userObj.firstName,
       lastName: userObj.lastName,
       email: userObj.email,
-      role: userObj.role,
+      role: userObj.role
+        ? (typeof userObj.role === 'object' && userObj.role._id
+            ? { ...userObj.role, _id: userObj.role._id.toString() }
+            : userObj.role.toString())
+        : undefined,
       status: userObj.status,
       isActive: userObj.isActive,
       passwordHash: userObj.passwordHash,

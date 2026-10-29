@@ -193,13 +193,16 @@ export class UsersService {
 
     await this.checkHierarchy(actor.role, user.role, 'edit');
     if (updateData.role) {
-      await this.checkHierarchy(actor.role, updateData.role, 'promote');
-      if (typeof updateData.role === 'string' && !Types.ObjectId.isValid(updateData.role)) {
-        const roleDoc = await this.roleModel.findOne({ name: updateData.role.toUpperCase() }).exec();
+      const roleStr = typeof updateData.role === 'object'
+        ? (updateData.role._id?.toString() || updateData.role.name || updateData.role.toString())
+        : String(updateData.role);
+      await this.checkHierarchy(actor.role, roleStr, 'promote');
+      if (!Types.ObjectId.isValid(roleStr)) {
+        const roleDoc = await this.roleModel.findOne({ name: roleStr.toUpperCase() }).exec();
         if (!roleDoc) throw new BadRequestException('Cargo informado não existe.');
         user.role = roleDoc._id;
       } else {
-        user.role = updateData.role;
+        user.role = roleStr;
       }
     }
 
