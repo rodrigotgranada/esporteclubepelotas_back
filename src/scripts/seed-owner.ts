@@ -94,4 +94,4 @@ async function bootstrap() {
   process.exit(0);
 }
 
-bootstrap();
+void bootstrap();

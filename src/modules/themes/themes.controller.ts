@@ -54,6 +54,16 @@ export class ThemesController {
     return { success: true };
   }
 
+  @Post(':id/deactivate')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('settings.manage')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Deactivate a campaign theme (Admin)' })
+  async deactivate(@Param('id') id: string) {
+    await this.themesService.deactivate(id);
+    return { success: true };
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('settings.manage')

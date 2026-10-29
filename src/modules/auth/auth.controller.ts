@@ -25,7 +25,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     @InjectConnection() private readonly connection: mongoose.Connection,
-  ) {}
+  ) { }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)

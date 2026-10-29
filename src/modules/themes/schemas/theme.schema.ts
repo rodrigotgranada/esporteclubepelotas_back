@@ -64,6 +64,18 @@ export class Theme {
   @Prop({ type: Boolean, default: false })
   isDefault: boolean; // Previne deleção do tema principal
 
+  @Prop({ type: Boolean, default: false })
+  isCampaign: boolean; // Identifica se é uma campanha sazonal
+
+  @Prop({ type: String, default: null })
+  campaignColor?: string; // Cor semente da campanha (ex: #ec4899)
+
+  @Prop({ type: Date, default: null })
+  startDate?: Date; // Data inicial da campanha (UTC)
+
+  @Prop({ type: Date, default: null })
+  endDate?: Date; // Data final da campanha (UTC)
+
   @Prop({ type: ThemePaletteSchema, required: true })
   light: ThemePalette;
 
