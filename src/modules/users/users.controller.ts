@@ -167,26 +167,20 @@ export class UsersController {
     return this.usersService.updateAvatar(id, file);
   }
 
-  @Post('me/avatar')
-  @UseGuards(JwtAuthGuard)
+  @Delete('admin/:id/avatar')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('users.edit', 'users.manage')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update current user avatar' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        avatar: { type: 'string', format: 'binary', description: 'Avatar image file' },
-      },
-    },
-  })
-  @UseInterceptors(FileInterceptor('avatar'))
-  async updateMyAvatar(
-    @UploadedFile() file: any,
+  @ApiOperation({ summary: 'Delete any user avatar by Admin' })
+  @ApiParam({ name: 'id', required: true, type: String })
+  async adminDeleteAvatar(
+    @Param('id') id: string,
     @Req() req: any,
   ) {
-    if (!file) throw new BadRequestException('Arquivo de imagem é obrigatório');
-    return this.usersService.updateAvatar(req.user.userId, file);
+    const user = await this.usersService.findById(id);
+    if (!user) throw new BadRequestException('Usuário não encontrado');
+    await this.usersService.checkHierarchy(req.user.role, user.role, 'edit');
+    return this.usersService.adminUpdate(id, { avatarUrl: '' }, req.user);
   }
 
   @Patch('admin/:id/status')

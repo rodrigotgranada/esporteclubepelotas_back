@@ -1,8 +1,9 @@
-import { IsOptional, IsString, IsPhoneNumber, IsObject, ValidateNested, IsBoolean, MinLength } from 'class-validator';
+import { IsOptional, IsString, ValidateNested, IsBoolean, MinLength, IsDateString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { PreferencesDto } from './create-user.dto.js';
 
-class AddressDto {
+export class UpdateMeAddressDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
@@ -44,21 +45,26 @@ class AddressDto {
   isPrimary?: boolean;
 }
 
-class PhoneDto {
+export class UpdateMePhoneDto {
   @ApiPropertyOptional()
   @IsOptional()
-  @IsPhoneNumber('BR')
+  @IsString()
   number?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
-  isWhatsApp?: boolean;
+  isWhatsapp?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
   isPrimary?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isVerified?: boolean;
 }
 
 export class UpdateMeDto {
@@ -79,15 +85,26 @@ export class UpdateMeDto {
   @IsString()
   avatarUrl?: string;
 
-  @ApiPropertyOptional({ type: [AddressDto] })
+  @ApiPropertyOptional()
   @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => AddressDto)
-  addresses?: AddressDto[];
+  @IsDateString()
+  birthDate?: string;
 
-  @ApiPropertyOptional({ type: [PhoneDto] })
+  @ApiPropertyOptional({ type: [UpdateMeAddressDto] })
   @IsOptional()
   @ValidateNested({ each: true })
-  @Type(() => PhoneDto)
-  phones?: PhoneDto[];
+  @Type(() => UpdateMeAddressDto)
+  addresses?: UpdateMeAddressDto[];
+
+  @ApiPropertyOptional({ type: [UpdateMePhoneDto] })
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => UpdateMePhoneDto)
+  phones?: UpdateMePhoneDto[];
+
+  @ApiPropertyOptional({ type: PreferencesDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PreferencesDto)
+  preferences?: PreferencesDto;
 }

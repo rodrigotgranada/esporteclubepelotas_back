@@ -224,6 +224,7 @@ export class UsersService {
 
     if (updateData.firstName) user.firstName = updateData.firstName;
     if (updateData.lastName) user.lastName = updateData.lastName;
+    if (updateData.birthDate) user.birthDate = updateData.birthDate;
     if (updateData.status) user.status = updateData.status;
     if (updateData.birthDate) user.birthDate = updateData.birthDate;
     if (updateData.avatarUrl !== undefined) user.avatarUrl = updateData.avatarUrl;
@@ -539,6 +540,7 @@ export class UsersService {
     
     if (updateData.firstName) user.firstName = updateData.firstName;
     if (updateData.lastName) user.lastName = updateData.lastName;
+    if (updateData.birthDate) user.birthDate = updateData.birthDate;
     
     if (updateData.addresses !== undefined) {
       if (updateData.addresses.length === 0 && (user.addresses && user.addresses.length > 0)) {

@@ -1,5 +1,5 @@
-import { Controller, Post, Patch, Put, Delete, Body, Req, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { Controller, Post, Patch, Put, Delete, Body, Req, UseGuards, UseInterceptors, UploadedFiles, BadRequestException } from '@nestjs/common';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { UserProfileService } from './user-profile.service.js';
@@ -23,59 +23,92 @@ export class UserProfileController {
   @Patch('me')
   @ApiOperation({ summary: 'Update my profile' })
   async updateMe(@Body() updateMeDto: UpdateMeDto, @Req() req: any) {
-    return this.usersService.updateMe(req.user.id, updateMeDto);
+    const userId = req.user?.id || req.user?.userId;
+    return this.usersService.updateMe(userId, updateMeDto);
   }
 
   @Put('me/avatar')
-  @ApiOperation({ summary: 'Update my avatar' })
+  @ApiOperation({ summary: 'Update my avatar (PUT)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        file: {
-          type: 'string',
-          format: 'binary',
-        },
+        file: { type: 'string', format: 'binary' },
+        avatar: { type: 'string', format: 'binary' },
       },
     },
   })
-  @UseInterceptors(FileInterceptor('file'))
-  async updateAvatar(@UploadedFile() file: any, @Req() req: any) {
+  @UseInterceptors(AnyFilesInterceptor())
+  async updateAvatarPut(@UploadedFiles() files: any[], @Req() req: any) {
+    const file = files?.[0];
     if (!file) throw new BadRequestException('Nenhum arquivo enviado');
-    return this.usersService.updateAvatar(req.user.id, file);
+    const userId = req.user?.id || req.user?.userId;
+    return this.usersService.updateAvatar(userId, file);
+  }
+
+  @Post('me/avatar')
+  @ApiOperation({ summary: 'Update my avatar (POST)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        avatar: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @UseInterceptors(AnyFilesInterceptor())
+  async updateAvatarPost(@UploadedFiles() files: any[], @Req() req: any) {
+    const file = files?.[0];
+    if (!file) throw new BadRequestException('Nenhum arquivo enviado');
+    const userId = req.user?.id || req.user?.userId;
+    return this.usersService.updateAvatar(userId, file);
+  }
+
+  @Delete('me/avatar')
+  @ApiOperation({ summary: 'Delete my avatar' })
+  async deleteAvatar(@Req() req: any) {
+    const userId = req.user?.id || req.user?.userId;
+    return this.usersService.updateMe(userId, { avatarUrl: '' });
   }
 
   @Delete('me')
   @ApiOperation({ summary: 'Deactivate my account' })
   async deactivateMe(@Body('password') password: string, @Req() req: any) {
     if (!password) throw new BadRequestException('A senha é obrigatória para excluir a conta');
-    await this.usersService.deactivateMe(req.user.id, password);
+    const userId = req.user?.id || req.user?.userId;
+    await this.usersService.deactivateMe(userId, password);
     return { success: true };
   }
 
   @Patch('profile/password')
   @ApiOperation({ summary: 'Update password' })
   async updatePassword(@Body() updatePasswordDto: UpdatePasswordDto, @Req() req: any) {
-    await this.userProfileService.updatePassword(req.user.id, updatePasswordDto.currentPassword, updatePasswordDto.newPassword);
+    const userId = req.user?.id || req.user?.userId;
+    await this.userProfileService.updatePassword(userId, updatePasswordDto.currentPassword, updatePasswordDto.newPassword);
     return { success: true };
   }
 
   @Post('profile/request-change')
   @ApiOperation({ summary: 'Request email or phone change' })
   async requestChange(@Body() dto: RequestChangeDto, @Req() req: any) {
-    return this.userProfileService.requestChange(req.user.id, dto.type, dto.newValue, dto.currentPassword);
+    const userId = req.user?.id || req.user?.userId;
+    return this.userProfileService.requestChange(userId, dto.type, dto.newValue, dto.currentPassword);
   }
 
   @Post('profile/confirm-change')
   @ApiOperation({ summary: 'Confirm email or phone change' })
   async confirmChange(@Body() dto: ConfirmChangeDto, @Req() req: any) {
-    return this.userProfileService.confirmChange(req.user.id, dto.type, dto.code);
+    const userId = req.user?.id || req.user?.userId;
+    return this.userProfileService.confirmChange(userId, dto.type, dto.code);
   }
 
   @Post('profile/confirm-firebase-phone')
   @ApiOperation({ summary: 'Confirm phone change via Firebase' })
   async confirmFirebasePhone(@Body() dto: ConfirmFirebasePhoneDto, @Req() req: any) {
-    return this.userProfileService.confirmFirebasePhone(req.user.id, dto.idToken, dto.currentPassword);
+    const userId = req.user?.id || req.user?.userId;
+    return this.userProfileService.confirmFirebasePhone(userId, dto.idToken, dto.currentPassword);
   }
 }
