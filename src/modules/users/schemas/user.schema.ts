@@ -103,6 +103,9 @@ export class User {
   @Prop({ type: String, required: true })
   passwordHash: string;
 
+  @Prop({ type: Boolean, default: false })
+  mustChangePassword: boolean;
+
   @Prop({ type: String, required: true, unique: true, index: true })
   cpf: string;
 

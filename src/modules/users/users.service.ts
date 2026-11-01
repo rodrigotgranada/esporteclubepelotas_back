@@ -53,6 +53,7 @@ export class UsersService {
       email: obj.email,
       emailVerified: obj.emailVerified,
       passwordHash: obj.passwordHash,
+      mustChangePassword: obj.mustChangePassword ?? false,
       cpf: obj.cpf,
       avatarUrl: obj.avatarUrl,
       role: obj.role
@@ -159,6 +160,7 @@ export class UsersService {
       email,
       cpf,
       passwordHash,
+      mustChangePassword: createUserDto.mustChangePassword ?? false,
       role: assignedRoleId,
       status: UserStatus.ACTIVE,
     });
@@ -244,6 +246,10 @@ export class UsersService {
     if (updateData.password) {
       const saltRounds = 10;
       user.passwordHash = await bcrypt.hash(updateData.password, saltRounds);
+      user.mustChangePassword = updateData.mustChangePassword ?? false;
+      user.tokenVersion = (user.tokenVersion || 1) + 1;
+    } else if (updateData.mustChangePassword !== undefined) {
+      user.mustChangePassword = updateData.mustChangePassword;
     }
 
     await user.save();

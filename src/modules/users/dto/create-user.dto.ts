@@ -123,4 +123,8 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   role?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  mustChangePassword?: boolean;
 }

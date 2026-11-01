@@ -23,8 +23,6 @@ export class AuthService {
 
     this.usersService.checkLockout(user);
 
-
-
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.passwordHash);
     
     if (!isPasswordValid) {
@@ -34,7 +32,14 @@ export class AuthService {
 
     await this.usersService.resetLoginAttempts(user);
 
-    const payload = { sub: user._id, email: user.email, role: user.role, status: user.status, tokenVersion: user.tokenVersion || 1 };
+    const payload = { 
+      sub: user._id, 
+      email: user.email, 
+      role: user.role, 
+      status: user.status, 
+      tokenVersion: user.tokenVersion || 1,
+      mustChangePassword: user.mustChangePassword ?? false 
+    };
     
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' }); // 7 days
@@ -46,6 +51,7 @@ export class AuthService {
       firstName: userObj.firstName,
       lastName: userObj.lastName,
       email: userObj.email,
+      mustChangePassword: userObj.mustChangePassword ?? false,
       role: userObj.role
         ? (typeof userObj.role === 'object' && userObj.role._id
             ? { ...userObj.role, _id: userObj.role._id.toString() }
@@ -79,7 +85,14 @@ export class AuthService {
     }
 
     // Auto-login after successful verification
-    const payload = { sub: user._id, email: user.email, role: user.role, status: user.status, tokenVersion: user.tokenVersion || 1 };
+    const payload = { 
+      sub: user._id, 
+      email: user.email, 
+      role: user.role, 
+      status: user.status, 
+      tokenVersion: user.tokenVersion || 1,
+      mustChangePassword: user.mustChangePassword ?? false 
+    };
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
 
@@ -90,6 +103,7 @@ export class AuthService {
       firstName: userObj.firstName,
       lastName: userObj.lastName,
       email: userObj.email,
+      mustChangePassword: userObj.mustChangePassword ?? false,
       role: userObj.role
         ? (typeof userObj.role === 'object' && userObj.role._id
             ? { ...userObj.role, _id: userObj.role._id.toString() }
@@ -128,7 +142,14 @@ export class AuthService {
         throw new UnauthorizedException('Invalid token or inactive account');
       }
 
-      const newPayload = { sub: user._id, email: user.email, role: user.role, status: user.status, tokenVersion: user.tokenVersion || 1 };
+      const newPayload = { 
+        sub: user._id, 
+        email: user.email, 
+        role: user.role, 
+        status: user.status, 
+        tokenVersion: user.tokenVersion || 1,
+        mustChangePassword: user.mustChangePassword ?? false 
+      };
       
       const accessToken = this.jwtService.sign(newPayload);
       const refreshToken = this.jwtService.sign(newPayload, { expiresIn: '7d' });

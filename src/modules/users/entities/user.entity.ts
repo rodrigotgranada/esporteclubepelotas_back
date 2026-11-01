@@ -10,6 +10,7 @@ export class UserEntity {
   @Exclude()
   passwordHash: string;
   
+  mustChangePassword?: boolean;
   cpf: string;
   avatarUrl?: string;
   role: any;
