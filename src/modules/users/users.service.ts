@@ -183,7 +183,7 @@ export class UsersService {
     return this.mapToEntity(savedUser);
   }
 
-  async checkHierarchy(actorRole: any, targetRole: any, actionType: 'edit' | 'promote' = 'edit'): Promise<void> {
+  async checkHierarchy(actorRole: any, targetRole: any, actionType: 'edit' | 'promote' | 'delete' = 'edit'): Promise<void> {
     return UserHierarchyHelper.checkHierarchy(this.roleModel, actorRole, targetRole, actionType);
   }
 
@@ -191,7 +191,7 @@ export class UsersService {
     const user = await this.userModel.findById(id).populate('role').exec();
     if (!user) throw new BadRequestException('User not found');
 
-    await this.checkHierarchy(actor.role, user.role, 'edit');
+    await this.checkHierarchy(actor.role, user.role, updateData.status === UserStatus.BLOCKED || updateData.status === UserStatus.INACTIVE ? 'delete' : 'edit');
     if (updateData.role) {
       const roleStr = typeof updateData.role === 'object'
         ? (updateData.role._id?.toString() || updateData.role.name || updateData.role.toString())
@@ -254,7 +254,7 @@ export class UsersService {
     const user = await this.userModel.findById(id).populate('role').exec();
     if (!user) throw new BadRequestException('User not found');
     
-    await this.checkHierarchy(actor.role, user.role, 'edit');
+    await this.checkHierarchy(actor.role, user.role, status === UserStatus.BLOCKED || status === UserStatus.INACTIVE ? 'delete' : 'edit');
 
     user.status = status;
     if (status === UserStatus.ACTIVE) {
@@ -289,7 +289,7 @@ export class UsersService {
     const user = await this.userModel.findById(id).populate('role').exec();
     if (!user) throw new BadRequestException('User not found');
 
-    await this.checkHierarchy(actor.role, user.role, 'edit');
+    await this.checkHierarchy(actor.role, user.role, 'delete');
 
     user.isActive = false;
     user.status = UserStatus.INACTIVE;
