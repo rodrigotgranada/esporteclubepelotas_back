@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -40,6 +41,9 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // Filtro Global de Exceções
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
   // Parse de Cookies
   app.use(cookieParser());
