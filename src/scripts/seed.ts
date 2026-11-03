@@ -430,7 +430,7 @@ async function bootstrap() {
       title: 'Pelotas vence o clássico na Boca do Lobo e assume a liderança do grupo',
       subtitle: 'Com grande apoio da torcida áureo-cerúlea, o Lobo bateu o rival por 2 a 0 com gols de pênalti e cabeça.',
       slug: 'pelotas-vence-o-classico-na-boca-do-lobo-e-assume-a-lideranca-do-grupo',
-      coverImage: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1200&auto=format&fit=crop',
+      coverImage: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=1200&auto=format&fit=crop',
       coverCaption: 'Foto: Assessoria / E.C. Pelotas',
       summary: 'Em uma tarde memorável no Estádio Boca do Lobo, o Pelotas conquistou uma vitória categórica no clássico regional e assumiu o topo da tabela.',
       content: {
