@@ -1,6 +1,7 @@
 import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe, ClassSerializerInterceptor } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import express from 'express';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
 import helmet from 'helmet';
@@ -9,6 +10,10 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter.
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  // Limite ampliado do body-parser (suporta matérias ricas com conteúdo volumoso e imagens)
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // Segurança da Borda
   app.use(helmet());

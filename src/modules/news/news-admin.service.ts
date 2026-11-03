@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   Inject,
+  Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -19,6 +20,8 @@ import type { IStorageProvider } from '../../common/providers/storage/storage.in
 
 @Injectable()
 export class NewsAdminService {
+  private readonly logger = new Logger(NewsAdminService.name);
+
   constructor(
     @InjectModel(NewsArticle.name)
     private readonly articleModel: Model<NewsArticleDocument>,
@@ -206,8 +209,14 @@ export class NewsAdminService {
       t.trim().startsWith('#') ? t.trim() : `#${t.trim()}`
     );
 
+    let content = createNewsDto.content;
+    if (content) {
+      content = await this.processContentBase64Images(content);
+    }
+
     const article = new this.articleModel({
       ...createNewsDto,
+      content,
       slug,
       author: new Types.ObjectId(authorId),
       category: new Types.ObjectId(createNewsDto.category),
@@ -243,6 +252,10 @@ export class NewsAdminService {
       slug,
       publishedAt,
     };
+
+    if (updateNewsDto.content) {
+      updatePayload.content = await this.processContentBase64Images(updateNewsDto.content);
+    }
 
     if (updateNewsDto.category) {
       updatePayload.category = new Types.ObjectId(updateNewsDto.category);
@@ -347,5 +360,73 @@ export class NewsAdminService {
       .exec();
 
     return categories.map((c) => this.mapCategory(c));
+  }
+
+  async uploadContentImage(file: any) {
+    if (!file) throw new BadRequestException('Nenhum arquivo enviado.');
+    if (!file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('O arquivo enviado deve ser uma imagem.');
+    }
+
+    const ext = file.mimetype.split('/')[1] || 'png';
+    const unique = Math.round(Math.random() * 1e6);
+    const fileName = `content-${Date.now()}-${unique}.${ext}`;
+    const folder = `news/content`;
+
+    const url = await this.storageProvider.uploadFile(file.buffer, fileName, folder, file.mimetype);
+    return { url };
+  }
+
+  private async processContentBase64Images(content: Record<string, any>): Promise<Record<string, any>> {
+    if (!content || !Array.isArray(content.content)) {
+      return content;
+    }
+
+    const processNodes = async (nodes: any[]): Promise<any[]> => {
+      const result: any[] = [];
+      for (const node of nodes) {
+        if (node.type === 'image' && typeof node.attrs?.src === 'string' && node.attrs.src.startsWith('data:image/')) {
+          try {
+            const dataUrl: string = node.attrs.src;
+            const matches = dataUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+            if (matches && matches.length === 3) {
+              const mimeType = matches[1];
+              const buffer = Buffer.from(matches[2], 'base64');
+              const ext = mimeType.split('/')[1] || 'png';
+              const unique = Math.round(Math.random() * 1e6);
+              const fileName = `content-${Date.now()}-${unique}.${ext}`;
+              const folder = `news/content`;
+
+              const url = await this.storageProvider.uploadFile(buffer, fileName, folder, mimeType);
+              result.push({
+                ...node,
+                attrs: {
+                  ...node.attrs,
+                  src: url,
+                },
+              });
+              continue;
+            }
+          } catch (err) {
+            this.logger.error({ err }, 'Failed to convert base64 image in content to storage url');
+          }
+        }
+
+        if (Array.isArray(node.content)) {
+          result.push({
+            ...node,
+            content: await processNodes(node.content),
+          });
+        } else {
+          result.push(node);
+        }
+      }
+      return result;
+    };
+
+    return {
+      ...content,
+      content: await processNodes(content.content),
+    };
   }
 }

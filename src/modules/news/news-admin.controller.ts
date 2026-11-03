@@ -50,6 +50,14 @@ export class NewsAdminController {
     return this.newsAdminService.createCategory(createCategoryDto);
   }
 
+  @Post('upload-image')
+  @ApiOperation({ summary: 'Upload de imagem para o corpo do texto da matéria' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('image'))
+  async uploadContentImage(@UploadedFile() file: any) {
+    return this.newsAdminService.uploadContentImage(file);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Obter dados de uma matéria para edição por ID' })
   async adminFindById(@Param('id') id: string) {
