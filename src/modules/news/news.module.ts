@@ -18,7 +18,7 @@ import { StorageModule } from '../../common/providers/storage/storage.module.js'
     StorageModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
   ],
-  controllers: [NewsController, NewsAdminController],
+  controllers: [NewsAdminController, NewsController],
   providers: [NewsService, NewsAdminService],
   exports: [NewsService, NewsAdminService],
 })
