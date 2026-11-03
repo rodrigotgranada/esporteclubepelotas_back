@@ -1,4 +1,36 @@
-import { IsOptional, IsString, IsArray } from 'class-validator';
+import { IsOptional, IsString, IsArray, ValidateNested, IsBoolean } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class SocialLinkItemDto {
+  @IsString()
+  platform: string;
+
+  @IsString()
+  label: string;
+
+  @IsString()
+  url: string;
+}
+
+export class ContactPhoneItemDto {
+  @IsString()
+  label: string;
+
+  @IsString()
+  number: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isWhatsapp?: boolean;
+}
+
+export class ContactEmailItemDto {
+  @IsString()
+  label: string;
+
+  @IsString()
+  email: string;
+}
 
 export class UpdateSettingsDto {
   @IsOptional()
@@ -21,4 +53,38 @@ export class UpdateSettingsDto {
     x?: string[];
     youtube?: string[];
   };
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SocialLinkItemDto)
+  socialLinks?: SocialLinkItemDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ContactPhoneItemDto)
+  contactPhones?: ContactPhoneItemDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ContactEmailItemDto)
+  contactEmails?: ContactEmailItemDto[];
+
+  @IsOptional()
+  @IsString()
+  stadiumName?: string;
+
+  @IsOptional()
+  @IsString()
+  stadiumAddress?: string;
+
+  @IsOptional()
+  @IsString()
+  googleMapsEmbedUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  copyrightText?: string;
 }

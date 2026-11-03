@@ -402,6 +402,30 @@ async function bootstrap() {
       x: ['https://x.com/ecpelotas'],
       youtube: ['https://youtube.com/@ecpelotasoficial'],
     },
+    socialLinks: [
+      { platform: 'instagram', label: '@ecpelotas (Oficial)', url: 'https://instagram.com/ecpelotas' },
+      { platform: 'instagram', label: '@base_ecpelotas (Base)', url: 'https://instagram.com/ecpelotas' },
+      { platform: 'facebook', label: 'Esporte Clube Pelotas', url: 'https://facebook.com/ecpelotas' },
+      { platform: 'x', label: '@ecpelotas', url: 'https://x.com/ecpelotas' },
+      { platform: 'threads', label: '@ecpelotas', url: 'https://threads.net/@ecpelotas' },
+      { platform: 'youtube', label: 'TV Lobo Oficial', url: 'https://youtube.com/@ecpelotasoficial' },
+      { platform: 'tiktok', label: '@ecpelotas', url: 'https://tiktok.com/@ecpelotas' },
+    ],
+    contactPhones: [
+      { label: 'Secretaria Geral', number: '(53) 3305-1908', isWhatsapp: false },
+      { label: 'Central de Sócios', number: '(53) 98408-1908', isWhatsapp: true },
+      { label: 'Ouvidoria', number: '(53) 3305-1909', isWhatsapp: false },
+    ],
+    contactEmails: [
+      { label: 'Secretaria', email: 'secretaria@ecpelotas.com.br' },
+      { label: 'Quadro Social', email: 'socios@ecpelotas.com.br' },
+      { label: 'Assessoria de Imprensa', email: 'imprensa@ecpelotas.com.br' },
+      { label: 'Comercial & Patrocínios', email: 'comercial@ecpelotas.com.br' },
+    ],
+    stadiumName: 'Estádio Boca do Lobo',
+    stadiumAddress: 'Av. Bento Gonçalves esquina Parque Dom Antônio Zattera - Pelotas/RS, CEP 96015-140',
+    googleMapsEmbedUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3393.2081577457755!2d-52.338274023616654!3d-31.76483561175654!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9511b594bce376b5%3A0xeae06c624641dbef!2sEst%C3%A1dio%20Boca%20do%20Lobo%20-%20Pelotas!5e0!3m2!1spt-BR!2sbr!4v1714000000000!5m2!1spt-BR!2sbr',
+    copyrightText: '© 2026 Esporte Clube Pelotas - Fundado em 11 de Outubro de 1908. Todos os direitos reservados.',
   });
   console.log('✅ Configurações do clube criadas com sucesso.');
 
