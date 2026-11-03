@@ -22,3 +22,4 @@ export class NewsCategory {
 }
 
 export const NewsCategorySchema = SchemaFactory.createForClass(NewsCategory);
+

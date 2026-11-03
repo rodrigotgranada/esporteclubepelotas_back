@@ -72,3 +72,4 @@ NewsArticleSchema.index({ isActive: 1, status: 1, publishedAt: -1 });
 NewsArticleSchema.index({ isActive: 1, status: 1, isFeatured: 1, publishedAt: -1 });
 // Text index for search on title, subtitle, and summary
 NewsArticleSchema.index({ title: 'text', subtitle: 'text', summary: 'text' });
+

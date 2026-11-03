@@ -45,3 +45,4 @@ export class QueryNewsDto {
   @IsOptional()
   isFeatured?: boolean;
 }
+

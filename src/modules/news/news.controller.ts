@@ -32,3 +32,4 @@ export class NewsController {
     return this.newsService.findBySlug(slug);
   }
 }
+

@@ -8,3 +8,4 @@ export class UpdateNewsDto extends PartialType(CreateNewsDto) {
   @IsOptional()
   slug?: string;
 }
+

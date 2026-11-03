@@ -81,3 +81,4 @@ export class CreateNewsDto {
   @IsOptional()
   youtubeVideoUrl?: string;
 }
+

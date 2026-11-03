@@ -91,3 +91,4 @@ export class NewsAdminController {
     return this.newsAdminService.uploadGallery(id, files);
   }
 }
+
