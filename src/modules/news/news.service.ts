@@ -14,6 +14,42 @@ export class NewsService {
     private readonly categoryModel: Model<NewsCategoryDocument>,
   ) {}
 
+  private mapArticle(doc: any) {
+    if (!doc) return null;
+    const obj = typeof doc.toObject === 'function' ? doc.toObject() : doc;
+    return {
+      ...obj,
+      _id: obj._id?.toString ? obj._id.toString() : String(obj._id),
+      id: obj._id?.toString ? obj._id.toString() : String(obj.id || obj._id),
+      category:
+        obj.category && typeof obj.category === 'object' && obj.category._id
+          ? {
+              ...obj.category,
+              _id: obj.category._id?.toString ? obj.category._id.toString() : String(obj.category._id),
+              id: obj.category._id?.toString ? obj.category._id.toString() : String(obj.category.id || obj.category._id),
+            }
+          : obj.category,
+      author:
+        obj.author && typeof obj.author === 'object' && obj.author._id
+          ? {
+              ...obj.author,
+              _id: obj.author._id?.toString ? obj.author._id.toString() : String(obj.author._id),
+              id: obj.author._id?.toString ? obj.author._id.toString() : String(obj.author.id || obj.author._id),
+            }
+          : obj.author,
+    };
+  }
+
+  private mapCategory(doc: any) {
+    if (!doc) return null;
+    const obj = typeof doc.toObject === 'function' ? doc.toObject() : doc;
+    return {
+      ...obj,
+      _id: obj._id?.toString ? obj._id.toString() : String(obj._id),
+      id: obj._id?.toString ? obj._id.toString() : String(obj.id || obj._id),
+    };
+  }
+
   async findAll(query: QueryNewsDto) {
     const page = query.page && query.page > 0 ? query.page : 1;
     const limit = query.limit && query.limit > 0 ? query.limit : 10;
@@ -59,7 +95,7 @@ export class NewsService {
       filter.isFeatured = query.isFeatured;
     }
 
-    const [data, total] = await Promise.all([
+    const [rawDocs, total] = await Promise.all([
       this.articleModel
         .find(filter)
         .sort({ isFeatured: -1, publishedAt: -1 })
@@ -72,7 +108,7 @@ export class NewsService {
     ]);
 
     return {
-      data,
+      data: rawDocs.map((d) => this.mapArticle(d)),
       total,
       page,
       limit,
@@ -103,7 +139,7 @@ export class NewsService {
       .exec()
       .catch(() => {});
 
-    return article;
+    return this.mapArticle(article);
   }
 
   async findFeatured(limit = 4) {
@@ -120,9 +156,11 @@ export class NewsService {
       .populate('author', 'firstName lastName avatarUrl')
       .exec();
 
+    let allDocs = featuredArticles;
+
     // If fewer featured articles than limit, supplement with most recent news
     if (featuredArticles.length < limit) {
-      const excludeIds = featuredArticles.map(a => a._id);
+      const excludeIds = featuredArticles.map((a) => a._id);
       const remainingLimit = limit - featuredArticles.length;
 
       const recentArticles = await this.articleModel
@@ -138,16 +176,18 @@ export class NewsService {
         .populate('author', 'firstName lastName avatarUrl')
         .exec();
 
-      return [...featuredArticles, ...recentArticles];
+      allDocs = [...featuredArticles, ...recentArticles];
     }
 
-    return featuredArticles;
+    return allDocs.map((d) => this.mapArticle(d));
   }
 
   async findAllCategories() {
-    return this.categoryModel
+    const categories = await this.categoryModel
       .find({ isActive: true })
       .sort({ order: 1, name: 1 })
       .exec();
+
+    return categories.map((c) => this.mapCategory(c));
   }
 }

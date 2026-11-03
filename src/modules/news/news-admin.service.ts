@@ -1,28 +1,21 @@
 import {
-  BadRequestException,
-  Inject,
   Injectable,
   NotFoundException,
+  BadRequestException,
+  Inject,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import {
-  NewsArticle,
-  NewsArticleDocument,
-  NewsStatus,
-} from './schemas/news-article.schema.js';
-import {
-  NewsCategory,
-  NewsCategoryDocument,
-} from './schemas/news-category.schema.js';
+import { NewsArticle, NewsArticleDocument, NewsStatus } from './schemas/news-article.schema.js';
+import { NewsCategory, NewsCategoryDocument } from './schemas/news-category.schema.js';
 import { CreateNewsDto } from './dto/create-news.dto.js';
 import { UpdateNewsDto } from './dto/update-news.dto.js';
-import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { QueryNewsDto } from './dto/query-news.dto.js';
+import { CreateCategoryDto } from './dto/create-category.dto.js';
 import {
   STORAGE_PROVIDER_TOKEN,
-  type IStorageProvider,
 } from '../../common/providers/storage/storage.interface.js';
+import type { IStorageProvider } from '../../common/providers/storage/storage.interface.js';
 
 @Injectable()
 export class NewsAdminService {
@@ -34,6 +27,42 @@ export class NewsAdminService {
     @Inject(STORAGE_PROVIDER_TOKEN)
     private readonly storageProvider: IStorageProvider,
   ) {}
+
+  private mapArticle(doc: any) {
+    if (!doc) return null;
+    const obj = typeof doc.toObject === 'function' ? doc.toObject() : doc;
+    return {
+      ...obj,
+      _id: obj._id?.toString ? obj._id.toString() : String(obj._id),
+      id: obj._id?.toString ? obj._id.toString() : String(obj.id || obj._id),
+      category:
+        obj.category && typeof obj.category === 'object' && obj.category._id
+          ? {
+              ...obj.category,
+              _id: obj.category._id?.toString ? obj.category._id.toString() : String(obj.category._id),
+              id: obj.category._id?.toString ? obj.category._id.toString() : String(obj.category.id || obj.category._id),
+            }
+          : obj.category,
+      author:
+        obj.author && typeof obj.author === 'object' && obj.author._id
+          ? {
+              ...obj.author,
+              _id: obj.author._id?.toString ? obj.author._id.toString() : String(obj.author._id),
+              id: obj.author._id?.toString ? obj.author._id.toString() : String(obj.author.id || obj.author._id),
+            }
+          : obj.author,
+    };
+  }
+
+  private mapCategory(doc: any) {
+    if (!doc) return null;
+    const obj = typeof doc.toObject === 'function' ? doc.toObject() : doc;
+    return {
+      ...obj,
+      _id: obj._id?.toString ? obj._id.toString() : String(obj._id),
+      id: obj._id?.toString ? obj._id.toString() : String(obj.id || obj._id),
+    };
+  }
 
   /**
    * Helper para sanitizar strings e produzir slugs amigáveis.
@@ -61,13 +90,12 @@ export class NewsAdminService {
     const existingArticles = await this.articleModel
       .find({ slug: regex })
       .select('_id slug')
-      .lean()
       .exec();
 
     // Filtra artigos que não sejam o próprio que está sendo editado
     const otherSlugs = existingArticles
-      .filter(a => !currentArticleId || a._id.toString() !== currentArticleId.toString())
-      .map(a => a.slug);
+      .filter((a) => !currentArticleId || a._id.toString() !== currentArticleId.toString())
+      .map((a) => a.slug);
 
     if (!otherSlugs.includes(baseSlug)) {
       return baseSlug;
@@ -135,7 +163,7 @@ export class NewsAdminService {
     ]);
 
     return {
-      data,
+      data: data.map((d) => this.mapArticle(d)),
       total,
       page,
       limit,
@@ -158,7 +186,7 @@ export class NewsAdminService {
       throw new NotFoundException('Matéria não encontrada');
     }
 
-    return article;
+    return this.mapArticle(article);
   }
 
   async create(createNewsDto: CreateNewsDto, authorId: string) {
@@ -174,7 +202,7 @@ export class NewsAdminService {
     }
 
     // Normalização das tags
-    const cleanTags = (createNewsDto.tags || []).map(t =>
+    const cleanTags = (createNewsDto.tags || []).map((t) =>
       t.trim().startsWith('#') ? t.trim() : `#${t.trim()}`
     );
 
@@ -189,7 +217,8 @@ export class NewsAdminService {
       isActive: true,
     });
 
-    return article.save();
+    const saved = await article.save();
+    return this.mapArticle(saved);
   }
 
   async update(id: string, updateNewsDto: UpdateNewsDto) {
@@ -220,20 +249,23 @@ export class NewsAdminService {
     }
 
     if (updateNewsDto.tags) {
-      updatePayload.tags = updateNewsDto.tags.map(t =>
+      updatePayload.tags = updateNewsDto.tags.map((t) =>
         t.trim().startsWith('#') ? t.trim() : `#${t.trim()}`
       );
     }
 
-    return this.articleModel
+    const updated = await this.articleModel
       .findByIdAndUpdate(id, updatePayload, { new: true })
       .populate('category', 'name slug')
       .populate('author', 'firstName lastName avatarUrl email')
       .exec();
+
+    return this.mapArticle(updated);
   }
 
   async softDelete(id: string) {
-    const article = await this.adminFindById(id);
+    const article = await this.articleModel.findById(id).exec();
+    if (!article) throw new NotFoundException('Matéria não encontrada');
     article.isActive = false;
     await article.save();
     return { success: true, message: 'Matéria excluída com sucesso (soft-delete).' };
@@ -304,14 +336,16 @@ export class NewsAdminService {
       order: 0,
     });
 
-    return category.save();
+    const saved = await category.save();
+    return this.mapCategory(saved);
   }
 
   async adminFindAllCategories() {
-    return this.categoryModel
+    const categories = await this.categoryModel
       .find({ isActive: true })
       .sort({ order: 1, name: 1 })
       .exec();
+
+    return categories.map((c) => this.mapCategory(c));
   }
 }
-
