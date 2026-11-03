@@ -17,6 +17,7 @@ import { SystemModulesModule } from './modules/system-modules/system-modules.mod
 import { RolesModule } from './modules/roles/roles.module.js';
 import { ThemesModule } from './modules/themes/themes.module.js';
 import { SettingsModule } from './modules/settings/settings.module.js';
+import { NewsModule } from './modules/news/news.module.js';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { SettingsModule } from './modules/settings/settings.module.js';
     RolesModule,
     ThemesModule,
     SettingsModule,
+    NewsModule,
   ],
   controllers: [AppController],
   providers: [

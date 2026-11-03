@@ -7,6 +7,8 @@ import { Role, RoleDocument } from '../modules/roles/schemas/role.schema.js';
 import { SystemModule, SystemModuleDocument } from '../modules/system-modules/schemas/system-module.schema.js';
 import { Theme, ThemeDocument } from '../modules/themes/schemas/theme.schema.js';
 import { Setting, SettingDocument } from '../modules/settings/schemas/setting.schema.js';
+import { NewsArticle, NewsArticleDocument, NewsStatus } from '../modules/news/schemas/news-article.schema.js';
+import { NewsCategory, NewsCategoryDocument } from '../modules/news/schemas/news-category.schema.js';
 import * as bcrypt from 'bcrypt';
 
 async function bootstrap() {
@@ -21,6 +23,8 @@ async function bootstrap() {
   const moduleModel = app.get<Model<SystemModuleDocument>>(getModelToken(SystemModule.name));
   const themeModel = app.get<Model<ThemeDocument>>(getModelToken(Theme.name));
   const settingModel = app.get<Model<SettingDocument>>(getModelToken(Setting.name));
+  const articleModel = app.get<Model<NewsArticleDocument>>(getModelToken(NewsArticle.name));
+  const categoryModel = app.get<Model<NewsCategoryDocument>>(getModelToken(NewsCategory.name));
 
   console.log('🧹 Limpando coleções existentes para reset limpo...');
   await Promise.all([
@@ -29,6 +33,8 @@ async function bootstrap() {
     moduleModel.deleteMany({}),
     themeModel.deleteMany({}),
     settingModel.deleteMany({}),
+    articleModel.deleteMany({}),
+    categoryModel.deleteMany({}),
   ]);
   console.log('✨ Coleções limpas com sucesso.');
 
@@ -386,7 +392,7 @@ async function bootstrap() {
   console.log(`✅ ${themesList.length} temas cadastrados (Padrão E.C. Pelotas ativo).`);
 
   // 5. Configurações Globais do Clube
-  console.log('\n⚙️ [5/5] Inicializando Configurações Gerais do Clube...');
+  console.log('\n⚙️ [5/6] Inicializando Configurações Gerais do Clube...');
   await settingModel.create({
     clubName: 'Esporte Clube Pelotas',
     clubLogoGallery: [],
@@ -398,6 +404,126 @@ async function bootstrap() {
     },
   });
   console.log('✅ Configurações do clube criadas com sucesso.');
+
+  // 6. Categorias e Notícias Iniciais
+  console.log('\n📰 [6/6] Semeando Categorias e Notícias Iniciais...');
+  const categoriesData = [
+    { name: 'Futebol Profissional', slug: 'futebol-profissional', description: 'Notícias do time principal e jogos', order: 1 },
+    { name: 'Categorias de Base', slug: 'categorias-de-base', description: 'Atividades e partidas do Sub-15, Sub-17 e Sub-20', order: 2 },
+    { name: 'Sócios & Torcida', slug: 'socios-e-torcida', description: 'Informações sobre planos, promoções e torcida', order: 3 },
+    { name: 'Institucional', slug: 'institucional', description: 'Comunicação oficial e diretoria', order: 4 },
+    { name: 'Nota Oficial', slug: 'nota-oficial', description: 'Comunicados e notas oficiais do clube', order: 5 },
+  ];
+
+  const createdCategories: Record<string, any> = {};
+  for (const c of categoriesData) {
+    const created = await categoryModel.create(c);
+    createdCategories[c.slug] = created;
+  }
+  console.log(`✅ ${categoriesData.length} categorias de notícias criadas.`);
+
+  const authorUser = (await userModel.findOne({ email: 'editor@ecpelotas.com.br' })) || (await userModel.findOne({ email: 'admin@ecpelotas.com.br' }));
+  const authorId = authorUser?._id;
+
+  const sampleArticles = [
+    {
+      title: 'Pelotas vence o clássico na Boca do Lobo e assume a liderança do grupo',
+      subtitle: 'Com grande apoio da torcida áureo-cerúlea, o Lobo bateu o rival por 2 a 0 com gols de pênalti e cabeça.',
+      slug: 'pelotas-vence-o-classico-na-boca-do-lobo-e-assume-a-lideranca-do-grupo',
+      coverImage: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1200&auto=format&fit=crop',
+      coverCaption: 'Foto: Assessoria / E.C. Pelotas',
+      summary: 'Em uma tarde memorável no Estádio Boca do Lobo, o Pelotas conquistou uma vitória categórica no clássico regional e assumiu o topo da tabela.',
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'Em uma tarde de estádio lotado na Avenida Bento Gonçalves, o Esporte Clube Pelotas realizou uma atuação impecável diante de sua torcida e conquistou uma grande vitória por 2 a 0 no clássico regional.' }]
+          },
+          {
+            type: 'heading',
+            attrs: { level: 2 },
+            content: [{ type: 'text', text: 'Domínio do início ao fim' }]
+          },
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'Pressionando desde os minutos iniciais, a equipe áureo-cerúlea abriu o placar aos 28 minutos da primeira etapa após cobrança de pênalti precisa. No segundo tempo, em bela jogada de linha de fundo, veio o gol de cabeça que selou o resultado.' }]
+          },
+          {
+            type: 'blockquote',
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: '"Esta vitória reflete a entrega de todo o grupo e a energia indescritível que vem das arquibancadas da Boca do Lobo.", destacou o treinador áureo-cerúleo em coletiva.' }] }]
+          }
+        ]
+      },
+      category: createdCategories['futebol-profissional']._id,
+      tags: ['#Gauchão', '#Lobo', '#BocaDoLobo', '#Clássico'],
+      status: NewsStatus.PUBLISHED,
+      isFeatured: true,
+      author: authorId,
+      publishedAt: new Date(),
+      viewsCount: 142,
+      isActive: true,
+      gallery: [
+        'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1517466787929-bc90951d0974?q=80&w=800&auto=format&fit=crop'
+      ]
+    },
+    {
+      title: 'Seja Sócio Áureo-Cerúleo: Campanha 2026 traz benefícios e descontos',
+      subtitle: 'Torcedor pode se associar online e garantir entrada livre em todos os jogos em casa.',
+      slug: 'seja-socio-aureo-ceruleo-campanha-2026-traz-beneficios-e-descontos',
+      coverImage: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=1200&auto=format&fit=crop',
+      coverCaption: 'Foto: Departamento de Sócios / E.C. Pelotas',
+      summary: 'A nova campanha de associação valoriza a tradição do clube e oferece facilidades no pagamento e aplicativo exclusivo.',
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'O Esporte Clube Pelotas lança oficialmente a sua nova campanha de sócios para a temporada 2026. Com planos acessíveis a todas as famílias áureo-cerúleas, o torcedor terá acesso facilitado e catracas exclusivas na Boca do Lobo.' }]
+          }
+        ]
+      },
+      category: createdCategories['socios-e-torcida']._id,
+      tags: ['#SócioLobo', '#Pelotas', '#AvanteLobo'],
+      status: NewsStatus.PUBLISHED,
+      isFeatured: false,
+      author: authorId,
+      publishedAt: new Date(Date.now() - 86400000),
+      viewsCount: 89,
+      isActive: true
+    },
+    {
+      title: 'Categorias de Base: Sub-17 do Pelotas inicia preparação com foco na Copa FGF',
+      subtitle: 'Com nova comissão técnica, jovens atletas treinam forte no CT da Boca do Lobo.',
+      slug: 'categorias-de-base-sub-17-do-pelotas-inicia-preparacao-com-foco-na-copa-fgf',
+      coverImage: 'https://images.unsplash.com/photo-1518604666864-74239527e743?q=80&w=1200&auto=format&fit=crop',
+      coverCaption: 'Foto: Divulgação / Base Áureo-Cerúlea',
+      summary: 'Plantel juvenil conta com jovens talentos de Pelotas e região sul do estado.',
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'A equipe Sub-17 do Pelotas deu a largada nas atividades da pré-temporada nesta semana. A preparação visa a disputa dos torneios estaduais e a formação contínua de atletas para o elenco profissional.' }]
+          }
+        ]
+      },
+      category: createdCategories['categorias-de-base']._id,
+      tags: ['#BaseForte', '#Sub17', '#FuturoDoLobo'],
+      status: NewsStatus.PUBLISHED,
+      isFeatured: false,
+      author: authorId,
+      publishedAt: new Date(Date.now() - 172800000),
+      viewsCount: 65,
+      isActive: true
+    }
+  ];
+
+  for (const art of sampleArticles) {
+    await articleModel.create(art);
+  }
+  console.log(`✅ ${sampleArticles.length} matérias completas de notícias cadastradas.`);
 
   console.log('\n═════════════════════════════════════════════════════════════════');
   console.log(' 🎉 SEED CONCLUÍDO COM SUCESSO!');
