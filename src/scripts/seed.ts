@@ -534,7 +534,7 @@ async function bootstrap() {
       title: 'Categorias de Base: Sub-17 do Pelotas inicia preparação com foco na Copa FGF',
       subtitle: 'Com nova comissão técnica, jovens atletas treinam forte no CT da Boca do Lobo.',
       slug: 'categorias-de-base-sub-17-do-pelotas-inicia-preparacao-com-foco-na-copa-fgf',
-      coverImage: 'https://images.unsplash.com/photo-1518604666864-74239527e743?q=80&w=1200&auto=format&fit=crop',
+      coverImage: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=1200&auto=format&fit=crop',
       coverCaption: 'Foto: Divulgação / Base Áureo-Cerúlea',
       summary: 'Plantel juvenil conta com jovens talentos de Pelotas e região sul do estado.',
       content: {
