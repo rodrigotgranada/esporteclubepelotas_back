@@ -32,6 +32,30 @@ export class ContactEmailItemDto {
   email: string;
 }
 
+export class FooterNavigationItemDto {
+  @IsString()
+  label: string;
+
+  @IsString()
+  url: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isVisible?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isExternal?: boolean;
+}
+
+export class OpeningHourItemDto {
+  @IsString()
+  department: string;
+
+  @IsString()
+  schedule: string;
+}
+
 export class UpdateSettingsDto {
   @IsOptional()
   @IsString()
@@ -71,6 +95,18 @@ export class UpdateSettingsDto {
   @ValidateNested({ each: true })
   @Type(() => ContactEmailItemDto)
   contactEmails?: ContactEmailItemDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FooterNavigationItemDto)
+  footerNavigationLinks?: FooterNavigationItemDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OpeningHourItemDto)
+  openingHours?: OpeningHourItemDto[];
 
   @IsOptional()
   @IsString()
