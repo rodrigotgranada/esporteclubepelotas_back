@@ -67,7 +67,6 @@ export class NewsService {
         .limit(limit)
         .populate('category', 'name slug')
         .populate('author', 'firstName lastName avatarUrl')
-        .lean()
         .exec(),
       this.articleModel.countDocuments(filter).exec(),
     ]);
@@ -119,7 +118,6 @@ export class NewsService {
       .limit(limit)
       .populate('category', 'name slug')
       .populate('author', 'firstName lastName avatarUrl')
-      .lean()
       .exec();
 
     // If fewer featured articles than limit, supplement with most recent news
@@ -138,7 +136,6 @@ export class NewsService {
         .limit(remainingLimit)
         .populate('category', 'name slug')
         .populate('author', 'firstName lastName avatarUrl')
-        .lean()
         .exec();
 
       return [...featuredArticles, ...recentArticles];
@@ -151,8 +148,6 @@ export class NewsService {
     return this.categoryModel
       .find({ isActive: true })
       .sort({ order: 1, name: 1 })
-      .lean()
       .exec();
   }
 }
-

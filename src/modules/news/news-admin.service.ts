@@ -130,7 +130,6 @@ export class NewsAdminService {
         .limit(limit)
         .populate('category', 'name slug')
         .populate('author', 'firstName lastName avatarUrl email')
-        .lean()
         .exec(),
       this.articleModel.countDocuments(filter).exec(),
     ]);
@@ -312,7 +311,6 @@ export class NewsAdminService {
     return this.categoryModel
       .find({ isActive: true })
       .sort({ order: 1, name: 1 })
-      .lean()
       .exec();
   }
 }
