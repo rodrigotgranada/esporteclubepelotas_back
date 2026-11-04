@@ -437,6 +437,7 @@ async function bootstrap() {
     footerNavigationLinks: [
       { label: 'Início', url: '/', isVisible: true, isExternal: false },
       { label: 'Notícias do Lobo', url: '/noticias', isVisible: true, isExternal: false },
+      { label: 'Memorial & Ídolos', url: '/idolos', isVisible: true, isExternal: false },
       { label: 'Quadro Social (Seja Sócio)', url: '/socio', isVisible: true, isExternal: false },
       { label: 'Ingressos e Jogos', url: '/ingressos', isVisible: true, isExternal: false },
       { label: 'Área do Sócio / Perfil', url: '/profile', isVisible: true, isExternal: false },
