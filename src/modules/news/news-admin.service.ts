@@ -27,6 +27,8 @@ import { slugify, generateUniqueArticleSlug } from './helpers/news-slug.helper.j
 import { processContentBase64Images } from './helpers/news-content-processor.helper.js';
 import { NewsShowcaseHelper } from './helpers/news-showcase.helper.js';
 import { NewsMapperHelper } from './helpers/news-mapper.helper.js';
+import { NewsCommentsAdminHelper } from './helpers/news-comments-admin.helper.js';
+import { NewsScheduledHelper } from './helpers/news-scheduled.helper.js';
 import { UpdateShowcaseDto } from './dto/update-showcase.dto.js';
 
 @Injectable()
@@ -464,114 +466,27 @@ export class NewsAdminService {
     search?: string;
     articleId?: string;
   }) {
-    const page = Math.max(1, Number(query.page) || 1);
-    const limit = Math.max(1, Math.min(50, Number(query.limit) || 10));
-    const skip = (page - 1) * limit;
-
-    const filter: Record<string, any> = {
-      isActive: true,
-    };
-
-    if (query.status) {
-      filter.status = query.status;
-    }
-
-    if (query.articleId && Types.ObjectId.isValid(query.articleId)) {
-      filter.article = new Types.ObjectId(query.articleId);
-    }
-
-    if (query.search) {
-      filter.content = new RegExp(query.search.trim(), 'i');
-    }
-
-    const [comments, total] = await Promise.all([
-      this.commentModel
-        .find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate('article', 'title slug coverImage')
-        .populate({
-          path: 'author',
-          select: 'firstName lastName email avatar avatarUrl role',
-          populate: { path: 'role', select: 'name' },
-        })
-        .lean()
-        .exec(),
-      this.commentModel.countDocuments(filter).exec(),
-    ]);
-
-    return {
-      data: comments.map((c: any) => ({
-        _id: c._id.toString(),
-        id: c._id.toString(),
-        content: c.content,
-        status: c.status,
-        createdAt: c.createdAt,
-        article: c.article
-          ? {
-              _id: c.article._id?.toString() || '',
-              id: c.article._id?.toString() || '',
-              title: c.article.title,
-              slug: c.article.slug,
-              coverImage: c.article.coverImage,
-            }
-          : null,
-        author: c.author
-          ? {
-              _id: c.author._id?.toString() || '',
-              id: c.author._id?.toString() || '',
-              firstName: c.author.firstName || 'Torcedor',
-              lastName: c.author.lastName || '',
-              email: c.author.email || '',
-              avatar: c.author.avatar || c.author.avatarUrl || '',
-              avatarUrl: c.author.avatarUrl || c.author.avatar || '',
-              role: c.author.role?.name || (typeof c.author.role === 'string' ? c.author.role : 'TORCEDOR'),
-            }
-          : null,
-      })),
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit) || 1,
-    };
+    return NewsCommentsAdminHelper.adminFindComments(this.commentModel, query);
   }
 
   async adminUpdateCommentStatus(commentId: string, status: NewsCommentStatus) {
-    if (!Types.ObjectId.isValid(commentId)) {
-      throw new NotFoundException('Comentário não encontrado.');
-    }
-
-    const comment = await this.commentModel.findById(commentId);
-    if (!comment || !comment.isActive) {
-      throw new NotFoundException('Comentário não encontrado.');
-    }
-
-    comment.status = status;
-    await comment.save();
-
-    return {
-      _id: comment._id.toString(),
-      id: comment._id.toString(),
-      status: comment.status,
-      message: 'Status do comentário atualizado com sucesso.',
-    };
+    return NewsCommentsAdminHelper.adminUpdateCommentStatus(this.commentModel, commentId, status);
   }
 
   async adminDeleteComment(commentId: string) {
-    if (!Types.ObjectId.isValid(commentId)) {
-      throw new NotFoundException('Comentário não encontrado.');
-    }
+    return NewsCommentsAdminHelper.adminDeleteComment(this.commentModel, commentId);
+  }
 
-    const comment = await this.commentModel.findById(commentId);
-    if (!comment || !comment.isActive) {
-      throw new NotFoundException('Comentário não encontrado.');
-    }
+  // ═══════════════════════════════════════════════════════════════
+  // Matérias Agendadas (Fila de Publicações Programadas)
+  // ═══════════════════════════════════════════════════════════════
 
-    comment.isActive = false;
-    await comment.save();
+  async getScheduledArticles() {
+    return NewsScheduledHelper.getScheduledArticles(this.articleModel);
+  }
 
-    return { success: true, message: 'Comentário excluído com sucesso.' };
+  async publishNow(id: string) {
+    return NewsScheduledHelper.publishNow(this.articleModel, id);
   }
 
   // ═══════════════════════════════════════════════════════════════

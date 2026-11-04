@@ -19,3 +19,4 @@ export class UpdateShowcaseDto {
   @IsOptional()
   secondaryIds?: string[];
 }
+

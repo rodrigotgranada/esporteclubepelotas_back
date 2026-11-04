@@ -106,6 +106,12 @@ export class NewsAdminController {
     return this.newsAdminService.getCurrentMain();
   }
 
+  @Get('scheduled')
+  @ApiOperation({ summary: 'Listar matérias agendadas que ainda não entraram no ar (ordem cronológica)' })
+  async getScheduledArticles() {
+    return this.newsAdminService.getScheduledArticles();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Obter dados de uma matéria para edição por ID' })
   async adminFindById(@Param('id') id: string) {
@@ -135,6 +141,12 @@ export class NewsAdminController {
   async duplicate(@Param('id') id: string, @CurrentUser() user: any) {
     const userId = user?.id || user?._id || user?.sub;
     return this.newsAdminService.duplicate(id, userId);
+  }
+
+  @Post(':id/publish-now')
+  @ApiOperation({ summary: 'Publicar imediatamente uma matéria agendada no portal' })
+  async publishNow(@Param('id') id: string) {
+    return this.newsAdminService.publishNow(id);
   }
 
   @Delete(':id')

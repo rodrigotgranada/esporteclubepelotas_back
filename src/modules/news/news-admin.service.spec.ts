@@ -16,6 +16,7 @@ describe('NewsAdminService - Slugs, Lifecycle & Moderation', () => {
       findById: vi.fn(),
       findByIdAndUpdate: vi.fn(),
       findOne: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
     };
     mockCategoryModel = {
       findOne: vi.fn(),
@@ -244,6 +245,63 @@ describe('NewsAdminService - Slugs, Lifecycle & Moderation', () => {
       expect(mockComment.status).toBe(NewsCommentStatus.HIDDEN);
       expect(res.status).toBe(NewsCommentStatus.HIDDEN);
       expect(mockComment.save).toHaveBeenCalled();
+    });
+  });
+
+  describe('Scheduled News Management', () => {
+    it('should return scheduled articles sorted by publishedAt ascending', async () => {
+      const mockQuery = {
+        sort: vi.fn().mockReturnThis(),
+        populate: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue([
+          {
+            _id: '507f1f77bcf86cd799439011',
+            title: 'Pelotas estreia na Divisão de Acesso',
+            status: NewsStatus.SCHEDULED,
+            publishedAt: new Date(Date.now() + 3600000),
+            category: { name: 'Futebol', slug: 'futebol' },
+            author: { firstName: 'Repórter' },
+            tags: ['#Lobo'],
+          },
+        ]),
+      };
+
+      mockArticleModel.find.mockReturnValue(mockQuery);
+
+      const result = await service.getScheduledArticles();
+      expect(result.data).toHaveLength(1);
+      expect(result.total).toBe(1);
+      expect(result.data[0].title).toBe('Pelotas estreia na Divisão de Acesso');
+    });
+
+    it('should publish immediately an article and demote previous main if it is main slot', async () => {
+      const scheduledArticle = {
+        _id: '507f1f77bcf86cd799439011',
+        title: 'Grande Contratação do Lobo',
+        status: NewsStatus.SCHEDULED,
+        featuredSlot: NewsFeaturedSlot.MAIN,
+        isActive: true,
+        save: vi.fn().mockResolvedValue(true),
+        populate: vi.fn().mockResolvedValue(true),
+      };
+
+      mockArticleModel.findById.mockReturnValue({
+        exec: vi.fn().mockResolvedValue(scheduledArticle),
+      });
+
+      const result = await service.publishNow('507f1f77bcf86cd799439011');
+
+      expect(scheduledArticle.status).toBe(NewsStatus.PUBLISHED);
+      expect(mockArticleModel.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          featuredSlot: NewsFeaturedSlot.MAIN,
+        }),
+        expect.objectContaining({
+          $set: { featuredSlot: NewsFeaturedSlot.NONE, isFeatured: false },
+        }),
+      );
+      expect(scheduledArticle.save).toHaveBeenCalled();
+      expect(result.message).toContain('publicada com sucesso');
     });
   });
 });
