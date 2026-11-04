@@ -49,6 +49,10 @@ describe('UsersService', () => {
           provide: MAIL_PROVIDER_TOKEN,
           useValue: mockMailProvider,
         },
+        {
+          provide: getModelToken('Role'),
+          useValue: { findOne: vi.fn(), find: vi.fn() },
+        },
       ],
     }).compile();
 
