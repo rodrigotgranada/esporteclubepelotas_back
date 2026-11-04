@@ -21,6 +21,9 @@ export class NewsArticle {
   @Prop({ type: String, required: true, unique: true, index: true, trim: true, lowercase: true })
   slug: string;
 
+  @Prop({ type: [String], default: [], index: true })
+  previousSlugs: string[];
+
   @Prop({ type: String, required: true })
   coverImage: string;
 

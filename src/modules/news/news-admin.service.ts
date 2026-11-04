@@ -234,9 +234,22 @@ export class NewsAdminService {
     const article = await this.adminFindById(id);
 
     let slug = article.slug;
-    if (updateNewsDto.slug && updateNewsDto.slug !== article.slug) {
+    const previousSlugs: string[] = Array.isArray(article.previousSlugs)
+      ? [...article.previousSlugs]
+      : [];
+
+    if (updateNewsDto.slug && updateNewsDto.slug.trim() !== article.slug) {
       slug = await this.generateUniqueSlug(updateNewsDto.slug, id);
-    } else if (updateNewsDto.title && updateNewsDto.title !== article.title && !updateNewsDto.slug) {
+      if (article.slug && !previousSlugs.includes(article.slug)) {
+        previousSlugs.push(article.slug);
+      }
+    } else if (
+      article.status === NewsStatus.DRAFT &&
+      updateNewsDto.title &&
+      updateNewsDto.title !== article.title &&
+      !updateNewsDto.slug
+    ) {
+      // Regenera automaticamente a partir do título apenas se a matéria ainda for um Rascunho
       slug = await this.generateUniqueSlug(updateNewsDto.title, id);
     }
 
@@ -250,6 +263,7 @@ export class NewsAdminService {
     const updatePayload: Record<string, any> = {
       ...updateNewsDto,
       slug,
+      previousSlugs,
       publishedAt,
     };
 

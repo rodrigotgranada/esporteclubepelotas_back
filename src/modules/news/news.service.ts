@@ -50,34 +50,45 @@ export class NewsService {
     };
   }
 
+  private getPublicPublishCondition() {
+    const now = new Date();
+    return {
+      isActive: true,
+      $or: [
+        { status: NewsStatus.PUBLISHED, publishedAt: { $lte: now } },
+        { status: NewsStatus.SCHEDULED, publishedAt: { $lte: now } },
+      ],
+    };
+  }
+
   async findAll(query: QueryNewsDto) {
     const page = query.page && query.page > 0 ? query.page : 1;
     const limit = query.limit && query.limit > 0 ? query.limit : 10;
     const skip = (page - 1) * limit;
 
-    const filter: Record<string, any> = {
-      isActive: true,
-      status: NewsStatus.PUBLISHED,
-      publishedAt: { $lte: new Date() },
-    };
+    const andConditions: any[] = [
+      this.getPublicPublishCondition(),
+    ];
 
     if (query.search) {
       const searchRegex = new RegExp(query.search.trim(), 'i');
-      filter.$or = [
-        { title: searchRegex },
-        { subtitle: searchRegex },
-        { summary: searchRegex },
-        { tags: searchRegex },
-      ];
+      andConditions.push({
+        $or: [
+          { title: searchRegex },
+          { subtitle: searchRegex },
+          { summary: searchRegex },
+          { tags: searchRegex },
+        ],
+      });
     }
 
     if (query.category) {
       if (Types.ObjectId.isValid(query.category)) {
-        filter.category = new Types.ObjectId(query.category);
+        andConditions.push({ category: new Types.ObjectId(query.category) });
       } else {
         const cat = await this.categoryModel.findOne({ slug: query.category.toLowerCase(), isActive: true });
         if (cat) {
-          filter.category = cat._id;
+          andConditions.push({ category: cat._id });
         } else {
           return { data: [], total: 0, page, limit, totalPages: 0 };
         }
@@ -86,14 +97,18 @@ export class NewsService {
 
     if (query.tag) {
       const cleanTag = query.tag.replace(/^#/, '').trim();
-      filter.tags = {
-        $in: [cleanTag, `#${cleanTag}`, new RegExp(cleanTag, 'i')],
-      };
+      andConditions.push({
+        tags: {
+          $in: [cleanTag, `#${cleanTag}`, new RegExp(cleanTag, 'i')],
+        },
+      });
     }
 
     if (query.isFeatured !== undefined) {
-      filter.isFeatured = query.isFeatured;
+      andConditions.push({ isFeatured: query.isFeatured });
     }
+
+    const filter = andConditions.length > 1 ? { $and: andConditions } : andConditions[0];
 
     const [rawDocs, total] = await Promise.all([
       this.articleModel
@@ -118,36 +133,63 @@ export class NewsService {
 
   async findBySlug(slug: string) {
     const cleanSlug = slug.toLowerCase().trim();
-    const article = await this.articleModel
+    const publishCondition = this.getPublicPublishCondition();
+
+    // 1. Tenta encontrar pelo slug atual primário
+    let article = await this.articleModel
       .findOne({
         slug: cleanSlug,
-        isActive: true,
-        status: NewsStatus.PUBLISHED,
-        publishedAt: { $lte: new Date() },
+        ...publishCondition,
       })
       .populate('category', 'name slug')
       .populate('author', 'firstName lastName avatarUrl')
       .exec();
 
+    let isRedirect = false;
+
+    // 2. Se não encontrou, busca no histórico previousSlugs (redirecionamento 301)
+    if (!article) {
+      article = await this.articleModel
+        .findOne({
+          previousSlugs: cleanSlug,
+          ...publishCondition,
+        })
+        .populate('category', 'name slug')
+        .populate('author', 'firstName lastName avatarUrl')
+        .exec();
+
+      if (article) {
+        isRedirect = true;
+      }
+    }
+
     if (!article) {
       throw new NotFoundException('Matéria não encontrada ou indisponível.');
     }
 
-    // Increment views asynchronously without blocking response
+    // Incrementa visualizações de forma assíncrona
     this.articleModel
       .updateOne({ _id: article._id }, { $inc: { viewsCount: 1 } })
       .exec()
       .catch(() => {});
 
-    return this.mapArticle(article);
+    const mapped = this.mapArticle(article);
+    if (isRedirect) {
+      return {
+        ...mapped,
+        _redirectTo: article.slug,
+      };
+    }
+
+    return mapped;
   }
 
   async findFeatured(limit = 4) {
+    const publishCondition = this.getPublicPublishCondition();
+
     const featuredArticles = await this.articleModel
       .find({
-        isActive: true,
-        status: NewsStatus.PUBLISHED,
-        publishedAt: { $lte: new Date() },
+        ...publishCondition,
         isFeatured: true,
       })
       .sort({ publishedAt: -1 })
@@ -158,16 +200,14 @@ export class NewsService {
 
     let allDocs = featuredArticles;
 
-    // If fewer featured articles than limit, supplement with most recent news
+    // Se houver menos destaques que o limite, complementa com as matérias mais recentes
     if (featuredArticles.length < limit) {
       const excludeIds = featuredArticles.map((a) => a._id);
       const remainingLimit = limit - featuredArticles.length;
 
       const recentArticles = await this.articleModel
         .find({
-          isActive: true,
-          status: NewsStatus.PUBLISHED,
-          publishedAt: { $lte: new Date() },
+          ...publishCondition,
           _id: { $nin: excludeIds },
         })
         .sort({ publishedAt: -1 })

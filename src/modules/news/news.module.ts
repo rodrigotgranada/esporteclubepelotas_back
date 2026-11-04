@@ -5,6 +5,7 @@ import { NewsArticle, NewsArticleSchema } from './schemas/news-article.schema.js
 import { NewsCategory, NewsCategorySchema } from './schemas/news-category.schema.js';
 import { NewsService } from './news.service.js';
 import { NewsAdminService } from './news-admin.service.js';
+import { NewsSchedulerService } from './news-scheduler.service.js';
 import { NewsController } from './news.controller.js';
 import { NewsAdminController } from './news-admin.controller.js';
 import { StorageModule } from '../../common/providers/storage/storage.module.js';
@@ -19,7 +20,7 @@ import { StorageModule } from '../../common/providers/storage/storage.module.js'
     PassportModule.register({ defaultStrategy: 'jwt' }),
   ],
   controllers: [NewsAdminController, NewsController],
-  providers: [NewsService, NewsAdminService],
+  providers: [NewsService, NewsAdminService, NewsSchedulerService],
   exports: [NewsService, NewsAdminService],
 })
 export class NewsModule {}
