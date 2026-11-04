@@ -279,6 +279,7 @@ describe('NewsService', () => {
         skip: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
         populate: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockReturnThis(),
         exec: vi.fn().mockResolvedValue([
           {
             _id: 'com-1',

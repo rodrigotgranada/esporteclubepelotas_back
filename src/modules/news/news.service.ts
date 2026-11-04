@@ -440,18 +440,31 @@ export class NewsService {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(safeLimit)
-        .populate('author', 'firstName lastName avatar avatarUrl role')
+        .populate({
+          path: 'author',
+          select: 'firstName lastName avatar avatarUrl role',
+          populate: { path: 'role', select: 'name' },
+        })
+        .lean()
         .exec(),
       this.commentModel.countDocuments(filter).exec(),
     ]);
 
     return {
-      data: comments.map((c) => ({
+      data: comments.map((c: any) => ({
         _id: c._id.toString(),
         id: c._id.toString(),
         content: c.content,
-        createdAt: (c as any).createdAt,
-        author: c.author,
+        createdAt: c.createdAt,
+        author: {
+          _id: c.author?._id?.toString() || '',
+          id: c.author?._id?.toString() || '',
+          firstName: c.author?.firstName || 'Torcedor',
+          lastName: c.author?.lastName || '',
+          avatar: c.author?.avatar || c.author?.avatarUrl || '',
+          avatarUrl: c.author?.avatarUrl || c.author?.avatar || '',
+          role: c.author?.role?.name || (typeof c.author?.role === 'string' ? c.author.role : 'TORCEDOR'),
+        },
       })),
       total,
       page: safePage,
@@ -488,14 +501,29 @@ export class NewsService {
       isActive: true,
     });
 
-    const populated = await comment.populate('author', 'firstName lastName avatar avatarUrl role');
+    const populated = await comment.populate({
+      path: 'author',
+      select: 'firstName lastName avatar avatarUrl role',
+      populate: { path: 'role', select: 'name' },
+    });
+
+    const authorDoc = populated.author as any;
+    const authorObj = authorDoc && typeof authorDoc.toObject === 'function' ? authorDoc.toObject() : authorDoc;
 
     return {
       _id: populated._id.toString(),
       id: populated._id.toString(),
       content: populated.content,
       createdAt: (populated as any).createdAt,
-      author: populated.author as any,
+      author: {
+        _id: authorObj?._id?.toString() || '',
+        id: authorObj?._id?.toString() || '',
+        firstName: authorObj?.firstName || 'Torcedor',
+        lastName: authorObj?.lastName || '',
+        avatar: authorObj?.avatar || authorObj?.avatarUrl || '',
+        avatarUrl: authorObj?.avatarUrl || authorObj?.avatar || '',
+        role: authorObj?.role?.name || (typeof authorObj?.role === 'string' ? authorObj.role : 'TORCEDOR'),
+      },
     };
   }
 

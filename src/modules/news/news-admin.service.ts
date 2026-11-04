@@ -516,20 +516,44 @@ export class NewsAdminService {
         .skip(skip)
         .limit(limit)
         .populate('article', 'title slug coverImage')
-        .populate('author', 'firstName lastName email avatar avatarUrl role')
+        .populate({
+          path: 'author',
+          select: 'firstName lastName email avatar avatarUrl role',
+          populate: { path: 'role', select: 'name' },
+        })
+        .lean()
         .exec(),
       this.commentModel.countDocuments(filter).exec(),
     ]);
 
     return {
-      data: comments.map((c) => ({
+      data: comments.map((c: any) => ({
         _id: c._id.toString(),
         id: c._id.toString(),
         content: c.content,
         status: c.status,
-        createdAt: (c as any).createdAt,
-        article: c.article,
-        author: c.author,
+        createdAt: c.createdAt,
+        article: c.article
+          ? {
+              _id: c.article._id?.toString() || '',
+              id: c.article._id?.toString() || '',
+              title: c.article.title,
+              slug: c.article.slug,
+              coverImage: c.article.coverImage,
+            }
+          : null,
+        author: c.author
+          ? {
+              _id: c.author._id?.toString() || '',
+              id: c.author._id?.toString() || '',
+              firstName: c.author.firstName || 'Torcedor',
+              lastName: c.author.lastName || '',
+              email: c.author.email || '',
+              avatar: c.author.avatar || c.author.avatarUrl || '',
+              avatarUrl: c.author.avatarUrl || c.author.avatar || '',
+              role: c.author.role?.name || (typeof c.author.role === 'string' ? c.author.role : 'TORCEDOR'),
+            }
+          : null,
       })),
       total,
       page,
