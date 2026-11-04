@@ -11,6 +11,9 @@ import { NewsArticle, NewsArticleDocument, NewsStatus, NewsFeaturedSlot } from '
 import { NewsCategory, NewsCategoryDocument } from '../modules/news/schemas/news-category.schema.js';
 import { Idol, IdolDocument } from '../modules/idols/schemas/idol.schema.js';
 import { sampleIdols } from './seed-idols.helper.js';
+import { Athlete, AthleteDocument } from '../modules/football/schemas/athlete.schema.js';
+import { Squad, SquadDocument } from '../modules/football/schemas/squad.schema.js';
+import { sampleAthletes, sampleSquadConfig, sampleSquadStaff } from './seed-football.helper.js';
 import * as bcrypt from 'bcrypt';
 
 async function bootstrap() {
@@ -28,6 +31,8 @@ async function bootstrap() {
   const articleModel = app.get<Model<NewsArticleDocument>>(getModelToken(NewsArticle.name));
   const categoryModel = app.get<Model<NewsCategoryDocument>>(getModelToken(NewsCategory.name));
   const idolModel = app.get<Model<IdolDocument>>(getModelToken(Idol.name));
+  const athleteModel = app.get<Model<AthleteDocument>>(getModelToken(Athlete.name));
+  const squadModel = app.get<Model<SquadDocument>>(getModelToken(Squad.name));
 
   console.log('🧹 Limpando coleções existentes para reset limpo...');
   await Promise.all([
@@ -39,6 +44,8 @@ async function bootstrap() {
     articleModel.deleteMany({}),
     categoryModel.deleteMany({}),
     idolModel.deleteMany({}),
+    athleteModel.deleteMany({}),
+    squadModel.deleteMany({}),
   ]);
   console.log('✨ Coleções limpas com sucesso.');
 
@@ -76,6 +83,7 @@ async function bootstrap() {
         'users.delete',
         'news.manage',
         'idols.manage',
+        'football.manage',
         'settings.manage',
       ],
     },
@@ -92,6 +100,7 @@ async function bootstrap() {
         'users.delete',
         'news.manage',
         'idols.manage',
+        'football.manage',
         'settings.manage',
       ],
     },
@@ -100,7 +109,7 @@ async function bootstrap() {
       label: 'Editor de Conteúdo',
       description: 'Pode redigir, aprovar e publicar matérias e notícias.',
       isImmutable: true,
-      permissions: ['news.manage', 'idols.manage', 'users.view'],
+      permissions: ['news.manage', 'idols.manage', 'football.manage', 'users.view'],
     },
     {
       name: 'SOCIO',
@@ -572,11 +581,45 @@ async function bootstrap() {
   console.log(`✅ ${sampleArticles.length} matérias completas de notícias cadastradas.`);
 
   // 6. Ídolos do Memorial
-  console.log('\n⭐ [6/6] Cadastrando Ídolos Históricos do Memorial...');
+  console.log('\n⭐ [6/7] Cadastrando Ídolos Históricos do Memorial...');
   for (const idol of sampleIdols) {
     await idolModel.create({ ...idol, createdBy: authorId, lastEditedBy: authorId });
   }
   console.log(`✅ ${sampleIdols.length} ídolos lendários cadastrados.`);
+
+  // 7. Futebol: Atletas e Elenco 2025
+  console.log('\n⚽ [7/7] Cadastrando Atletas e Elenco Profissional 2025...');
+  const athleteMap = new Map<string, any>();
+  for (const athlete of sampleAthletes) {
+    const doc = await athleteModel.create({ ...athlete, createdBy: authorId });
+    athleteMap.set(athlete.slug, doc);
+  }
+  console.log(`✅ ${sampleAthletes.length} atletas cadastrados no banco.`);
+
+  const squadMembers = sampleSquadConfig.members.map((m) => {
+    const athleteDoc = athleteMap.get(m.slug);
+    return {
+      athlete: athleteDoc._id,
+      jerseyNumber: m.jerseyNumber,
+      sector: m.sector,
+      role: m.role,
+      order: m.order,
+    };
+  });
+
+  await squadModel.create({
+    year: sampleSquadConfig.year,
+    category: sampleSquadConfig.category,
+    seasonName: sampleSquadConfig.seasonName,
+    coachName: sampleSquadConfig.coachName,
+    staff: sampleSquadStaff,
+    coverUrl: sampleSquadConfig.coverUrl,
+    isCurrent: sampleSquadConfig.isCurrent,
+    members: squadMembers,
+    isActive: true,
+    createdBy: authorId,
+  });
+  console.log(`✅ Elenco Profissional ${sampleSquadConfig.year} montado e vinculado com sucesso.`);
 
   console.log('\n═════════════════════════════════════════════════════════════════');
   console.log(' 🎉 SEED CONCLUÍDO COM SUCESSO!');

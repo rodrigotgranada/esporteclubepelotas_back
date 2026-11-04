@@ -19,6 +19,7 @@ import { ThemesModule } from './modules/themes/themes.module.js';
 import { SettingsModule } from './modules/settings/settings.module.js';
 import { NewsModule } from './modules/news/news.module.js';
 import { IdolsModule } from './modules/idols/idols.module.js';
+import { FootballModule } from './modules/football/football.module.js';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { IdolsModule } from './modules/idols/idols.module.js';
     SettingsModule,
     NewsModule,
     IdolsModule,
+    FootballModule,
   ],
   controllers: [AppController],
   providers: [
