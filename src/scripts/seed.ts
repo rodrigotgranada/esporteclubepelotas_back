@@ -9,6 +9,8 @@ import { Theme, ThemeDocument } from '../modules/themes/schemas/theme.schema.js'
 import { Setting, SettingDocument } from '../modules/settings/schemas/setting.schema.js';
 import { NewsArticle, NewsArticleDocument, NewsStatus, NewsFeaturedSlot } from '../modules/news/schemas/news-article.schema.js';
 import { NewsCategory, NewsCategoryDocument } from '../modules/news/schemas/news-category.schema.js';
+import { Idol, IdolDocument } from '../modules/idols/schemas/idol.schema.js';
+import { sampleIdols } from './seed-idols.helper.js';
 import * as bcrypt from 'bcrypt';
 
 async function bootstrap() {
@@ -25,6 +27,7 @@ async function bootstrap() {
   const settingModel = app.get<Model<SettingDocument>>(getModelToken(Setting.name));
   const articleModel = app.get<Model<NewsArticleDocument>>(getModelToken(NewsArticle.name));
   const categoryModel = app.get<Model<NewsCategoryDocument>>(getModelToken(NewsCategory.name));
+  const idolModel = app.get<Model<IdolDocument>>(getModelToken(Idol.name));
 
   console.log('🧹 Limpando coleções existentes para reset limpo...');
   await Promise.all([
@@ -35,6 +38,7 @@ async function bootstrap() {
     settingModel.deleteMany({}),
     articleModel.deleteMany({}),
     categoryModel.deleteMany({}),
+    idolModel.deleteMany({}),
   ]);
   console.log('✨ Coleções limpas com sucesso.');
 
@@ -43,6 +47,7 @@ async function bootstrap() {
   const modules = [
     { name: 'Usuários', slug: 'users', description: 'Gestão de usuários e permissões da plataforma' },
     { name: 'Matérias', slug: 'news', description: 'Portal de notícias e publicações' },
+    { name: 'Ídolos & Memorial', slug: 'idols', description: 'Galeria de ídolos, atletas lendários, treinadores, funcionários e torcedores ilustres' },
     { name: 'Futebol', slug: 'football', description: 'Elenco, comissão técnica e partidas' },
     { name: 'História', slug: 'history', description: 'Ídolos, conquistas e patrimônio' },
     { name: 'Configurações', slug: 'settings', description: 'Personalização do clube e temas' },
@@ -70,6 +75,7 @@ async function bootstrap() {
         'users.edit',
         'users.delete',
         'news.manage',
+        'idols.manage',
         'settings.manage',
       ],
     },
@@ -85,6 +91,7 @@ async function bootstrap() {
         'users.edit',
         'users.delete',
         'news.manage',
+        'idols.manage',
         'settings.manage',
       ],
     },
@@ -93,7 +100,7 @@ async function bootstrap() {
       label: 'Editor de Conteúdo',
       description: 'Pode redigir, aprovar e publicar matérias e notícias.',
       isImmutable: true,
-      permissions: ['news.manage', 'users.view'],
+      permissions: ['news.manage', 'idols.manage', 'users.view'],
     },
     {
       name: 'SOCIO',
@@ -562,6 +569,13 @@ async function bootstrap() {
     await articleModel.create(art);
   }
   console.log(`✅ ${sampleArticles.length} matérias completas de notícias cadastradas.`);
+
+  // 6. Ídolos do Memorial
+  console.log('\n⭐ [6/6] Cadastrando Ídolos Históricos do Memorial...');
+  for (const idol of sampleIdols) {
+    await idolModel.create({ ...idol, createdBy: authorId, lastEditedBy: authorId });
+  }
+  console.log(`✅ ${sampleIdols.length} ídolos lendários cadastrados.`);
 
   console.log('\n═════════════════════════════════════════════════════════════════');
   console.log(' 🎉 SEED CONCLUÍDO COM SUCESSO!');

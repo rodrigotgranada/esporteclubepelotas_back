@@ -130,3 +130,4 @@ export class NewsCommentsAdminHelper {
     return { success: true, message: 'Comentário excluído com sucesso.' };
   }
 }
+

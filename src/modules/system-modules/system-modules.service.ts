@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { SystemModule as SysMod, SystemModuleDocument } from './schemas/system-module.schema.js';
@@ -17,9 +17,17 @@ export class SystemModulesService {
     return module;
   }
 
-  async updateStatus(id: string, isActive: boolean): Promise<SystemModuleDocument> {
-    const module = await this.findOne(id);
-    module.isActive = isActive;
-    return module.save();
+  async updateStatus(id: string, isActive: boolean): Promise<any> {
+    const module = await this.moduleModel
+      .findByIdAndUpdate(id, { isActive }, { new: true })
+      .lean()
+      .exec();
+    if (!module) throw new NotFoundException('Module not found');
+    return module;
+  }
+
+  async isModuleActive(slug: string): Promise<boolean> {
+    const module = await this.moduleModel.findOne({ slug }).lean().exec();
+    return module ? Boolean(module.isActive) : true;
   }
 }
