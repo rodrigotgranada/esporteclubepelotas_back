@@ -16,8 +16,9 @@ import { AuthModule } from '../auth/auth.module.js';
     StorageModule,
     AuthModule,
   ],
-  controllers: [IdolsController, IdolsAdminController],
+  controllers: [IdolsAdminController, IdolsController],
   providers: [IdolsService, IdolsAdminService],
   exports: [IdolsService, IdolsAdminService],
 })
 export class IdolsModule {}
+
