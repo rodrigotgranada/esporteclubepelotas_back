@@ -251,7 +251,7 @@ describe('NewsService', () => {
 
       const res = await service.addComment('materia-1', validUserId, 'Belo jogo do Pelotas!');
       expect(res.content).toBe('Belo jogo do Pelotas!');
-      expect(res.author.firstName).toBe('Torcedor');
+      expect((res.author as any).firstName).toBe('Torcedor');
     });
 
     it('should throw ForbiddenException if user account is not active', async () => {

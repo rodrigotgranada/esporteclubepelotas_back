@@ -26,3 +26,4 @@ export const NewsReactionSchema = SchemaFactory.createForClass(NewsReaction);
 
 // Garante que cada usuário tenha no máximo uma reação por matéria
 NewsReactionSchema.index({ article: 1, user: 1 }, { unique: true });
+

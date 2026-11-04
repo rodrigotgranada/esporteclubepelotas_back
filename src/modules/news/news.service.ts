@@ -477,7 +477,7 @@ export class NewsService {
       id: populated._id.toString(),
       content: populated.content,
       createdAt: (populated as any).createdAt,
-      author: populated.author,
+      author: populated.author as any,
     };
   }
 
