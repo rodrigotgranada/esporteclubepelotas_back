@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UploadedFile,
   UploadedFiles,
@@ -19,6 +20,7 @@ import { CreateNewsDto } from './dto/create-news.dto.js';
 import { UpdateNewsDto } from './dto/update-news.dto.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { QueryNewsDto } from './dto/query-news.dto.js';
+import { UpdateShowcaseDto } from './dto/update-showcase.dto.js';
 import { NewsCommentStatus } from './schemas/news-comment.schema.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../common/guards/permissions/permissions.guard.js';
@@ -84,6 +86,24 @@ export class NewsAdminController {
   @ApiOperation({ summary: 'Excluir comentário na moderação (soft-delete)' })
   async adminDeleteComment(@Param('commentId') commentId: string) {
     return this.newsAdminService.adminDeleteComment(commentId);
+  }
+
+  @Get('showcase')
+  @ApiOperation({ summary: 'Obter dados atuais da vitrine da capa (Manchetão e Destaques Secundários)' })
+  async getShowcase() {
+    return this.newsAdminService.getShowcase();
+  }
+
+  @Put('showcase')
+  @ApiOperation({ summary: 'Atualizar os slots da vitrine da capa de forma atômica (Manchetão e Secundários)' })
+  async updateShowcase(@Body() dto: UpdateShowcaseDto) {
+    return this.newsAdminService.updateShowcase(dto);
+  }
+
+  @Get('current-main')
+  @ApiOperation({ summary: 'Verificar se já existe um Manchetão Principal ativo na capa' })
+  async getCurrentMain() {
+    return this.newsAdminService.getCurrentMain();
   }
 
   @Get(':id')

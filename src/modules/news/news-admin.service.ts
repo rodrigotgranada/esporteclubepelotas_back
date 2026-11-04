@@ -25,6 +25,9 @@ import {
 import type { IStorageProvider } from '../../common/providers/storage/storage.interface.js';
 import { slugify, generateUniqueArticleSlug } from './helpers/news-slug.helper.js';
 import { processContentBase64Images } from './helpers/news-content-processor.helper.js';
+import { NewsShowcaseHelper } from './helpers/news-showcase.helper.js';
+import { NewsMapperHelper } from './helpers/news-mapper.helper.js';
+import { UpdateShowcaseDto } from './dto/update-showcase.dto.js';
 
 @Injectable()
 export class NewsAdminService {
@@ -42,39 +45,11 @@ export class NewsAdminService {
   ) {}
 
   private mapArticle(doc: any) {
-    if (!doc) return null;
-    const obj = typeof doc.toObject === 'function' ? doc.toObject() : doc;
-    return {
-      ...obj,
-      _id: obj._id?.toString ? obj._id.toString() : String(obj._id),
-      id: obj._id?.toString ? obj._id.toString() : String(obj.id || obj._id),
-      category:
-        obj.category && typeof obj.category === 'object' && obj.category._id
-          ? {
-              ...obj.category,
-              _id: obj.category._id?.toString ? obj.category._id.toString() : String(obj.category._id),
-              id: obj.category._id?.toString ? obj.category._id.toString() : String(obj.category.id || obj.category._id),
-            }
-          : obj.category,
-      author:
-        obj.author && typeof obj.author === 'object' && obj.author._id
-          ? {
-              ...obj.author,
-              _id: obj.author._id?.toString ? obj.author._id.toString() : String(obj.author._id),
-              id: obj.author._id?.toString ? obj.author._id.toString() : String(obj.author.id || obj.author._id),
-            }
-          : obj.author,
-    };
+    return NewsMapperHelper.mapArticle(doc);
   }
 
   private mapCategory(doc: any) {
-    if (!doc) return null;
-    const obj = typeof doc.toObject === 'function' ? doc.toObject() : doc;
-    return {
-      ...obj,
-      _id: obj._id?.toString ? obj._id.toString() : String(obj._id),
-      id: obj._id?.toString ? obj._id.toString() : String(obj.id || obj._id),
-    };
+    return NewsMapperHelper.mapCategory(doc);
   }
 
   /**
@@ -194,10 +169,10 @@ export class NewsAdminService {
 
     if (featuredSlot === NewsFeaturedSlot.MAIN) {
       isFeatured = true;
-      // Demove qualquer outro manchetão ativo para destaque secundário
+      // Define qualquer outro manchetão ativo anterior como NONE (comum), sem cascata oculta
       await this.articleModel.updateMany(
         { featuredSlot: NewsFeaturedSlot.MAIN, isActive: true },
-        { $set: { featuredSlot: NewsFeaturedSlot.SECONDARY } },
+        { $set: { featuredSlot: NewsFeaturedSlot.NONE, isFeatured: false } },
       );
     } else if (featuredSlot === NewsFeaturedSlot.SECONDARY) {
       isFeatured = true;
@@ -266,14 +241,14 @@ export class NewsAdminService {
     if (updateNewsDto.featuredSlot === NewsFeaturedSlot.MAIN) {
       isFeatured = true;
       featuredSlot = NewsFeaturedSlot.MAIN;
-      // Demove outro manchetão ativo para destaque secundário
+      // Define qualquer outro manchetão ativo anterior como NONE (comum), sem cascata oculta
       await this.articleModel.updateMany(
         {
           _id: { $ne: new Types.ObjectId(id) },
           featuredSlot: NewsFeaturedSlot.MAIN,
           isActive: true,
         },
-        { $set: { featuredSlot: NewsFeaturedSlot.SECONDARY } },
+        { $set: { featuredSlot: NewsFeaturedSlot.NONE, isFeatured: false } },
       );
     } else if (updateNewsDto.featuredSlot === NewsFeaturedSlot.SECONDARY) {
       isFeatured = true;
@@ -597,5 +572,21 @@ export class NewsAdminService {
     await comment.save();
 
     return { success: true, message: 'Comentário excluído com sucesso.' };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Vitrine & Gestão Visual de Destaques da Capa
+  // ═══════════════════════════════════════════════════════════════
+
+  async getShowcase() {
+    return NewsShowcaseHelper.getShowcase(this.articleModel);
+  }
+
+  async updateShowcase(dto: UpdateShowcaseDto) {
+    return NewsShowcaseHelper.updateShowcase(this.articleModel, dto);
+  }
+
+  async getCurrentMain() {
+    return NewsShowcaseHelper.getCurrentMain(this.articleModel);
   }
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NewsAdminService } from './news-admin.service.js';
-import { NewsStatus } from './schemas/news-article.schema.js';
+import { NewsStatus, NewsFeaturedSlot } from './schemas/news-article.schema.js';
 import { NewsCommentStatus } from './schemas/news-comment.schema.js';
 
 describe('NewsAdminService - Slugs, Lifecycle & Moderation', () => {
@@ -141,7 +141,7 @@ describe('NewsAdminService - Slugs, Lifecycle & Moderation', () => {
       );
     });
 
-    it('should demote other main articles when setting featuredSlot to MAIN', async () => {
+    it('should clear other main articles to NONE when setting featuredSlot to MAIN', async () => {
       mockArticleModel.updateMany = vi.fn().mockResolvedValue({ modifiedCount: 1 });
 
       const existingArticle = {
@@ -178,7 +178,7 @@ describe('NewsAdminService - Slugs, Lifecycle & Moderation', () => {
           featuredSlot: 'MAIN',
           isActive: true,
         }),
-        { $set: { featuredSlot: 'SECONDARY' } },
+        { $set: { featuredSlot: NewsFeaturedSlot.NONE, isFeatured: false } },
       );
 
       expect(mockArticleModel.findByIdAndUpdate).toHaveBeenCalledWith(
