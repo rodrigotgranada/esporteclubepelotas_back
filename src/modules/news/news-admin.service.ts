@@ -7,7 +7,12 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { NewsArticle, NewsArticleDocument, NewsStatus } from './schemas/news-article.schema.js';
+import {
+  NewsArticle,
+  NewsArticleDocument,
+  NewsStatus,
+  NewsFeaturedSlot,
+} from './schemas/news-article.schema.js';
 import { NewsCategory, NewsCategoryDocument } from './schemas/news-category.schema.js';
 import { CreateNewsDto } from './dto/create-news.dto.js';
 import { UpdateNewsDto } from './dto/update-news.dto.js';
@@ -134,6 +139,14 @@ export class NewsAdminService {
       filter.isFeatured = query.isFeatured;
     }
 
+    if (query.featuredSlot) {
+      filter.featuredSlot = query.featuredSlot;
+    }
+
+    if (query.isPinned !== undefined) {
+      filter.isPinned = query.isPinned;
+    }
+
     if (query.category) {
       if (Types.ObjectId.isValid(query.category)) {
         filter.category = new Types.ObjectId(query.category);
@@ -156,7 +169,7 @@ export class NewsAdminService {
     const [data, total] = await Promise.all([
       this.articleModel
         .find(filter)
-        .sort({ updatedAt: -1, createdAt: -1 })
+        .sort({ isPinned: -1, updatedAt: -1, createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .populate('category', 'name slug')
@@ -214,10 +227,31 @@ export class NewsAdminService {
       content = await this.processContentBase64Images(content);
     }
 
+    let featuredSlot = createNewsDto.featuredSlot || NewsFeaturedSlot.NONE;
+    let isFeatured = Boolean(createNewsDto.isFeatured);
+
+    if (featuredSlot === NewsFeaturedSlot.MAIN) {
+      isFeatured = true;
+      // Demove qualquer outro manchetão ativo para destaque secundário
+      await this.articleModel.updateMany(
+        { featuredSlot: NewsFeaturedSlot.MAIN, isActive: true },
+        { $set: { featuredSlot: NewsFeaturedSlot.SECONDARY } },
+      );
+    } else if (featuredSlot === NewsFeaturedSlot.SECONDARY) {
+      isFeatured = true;
+    } else if (isFeatured && featuredSlot === NewsFeaturedSlot.NONE) {
+      featuredSlot = NewsFeaturedSlot.MAIN;
+    }
+
     const article = new this.articleModel({
       ...createNewsDto,
       content,
       slug,
+      isFeatured,
+      featuredSlot,
+      isPinned: Boolean(createNewsDto.isPinned),
+      reporterName: createNewsDto.reporterName ? createNewsDto.reporterName.trim() : undefined,
+      photographerName: createNewsDto.photographerName ? createNewsDto.photographerName.trim() : undefined,
       author: new Types.ObjectId(authorId),
       category: new Types.ObjectId(createNewsDto.category),
       tags: cleanTags,
@@ -260,12 +294,61 @@ export class NewsAdminService {
       publishedAt = new Date();
     }
 
+    let featuredSlot = updateNewsDto.featuredSlot !== undefined
+      ? updateNewsDto.featuredSlot
+      : article.featuredSlot;
+    let isFeatured = updateNewsDto.isFeatured !== undefined
+      ? updateNewsDto.isFeatured
+      : article.isFeatured;
+
+    if (updateNewsDto.featuredSlot === NewsFeaturedSlot.MAIN) {
+      isFeatured = true;
+      featuredSlot = NewsFeaturedSlot.MAIN;
+      // Demove outro manchetão ativo para destaque secundário
+      await this.articleModel.updateMany(
+        {
+          _id: { $ne: new Types.ObjectId(id) },
+          featuredSlot: NewsFeaturedSlot.MAIN,
+          isActive: true,
+        },
+        { $set: { featuredSlot: NewsFeaturedSlot.SECONDARY } },
+      );
+    } else if (updateNewsDto.featuredSlot === NewsFeaturedSlot.SECONDARY) {
+      isFeatured = true;
+      featuredSlot = NewsFeaturedSlot.SECONDARY;
+    } else if (updateNewsDto.featuredSlot === NewsFeaturedSlot.NONE) {
+      isFeatured = false;
+      featuredSlot = NewsFeaturedSlot.NONE;
+    } else if (updateNewsDto.isFeatured !== undefined && updateNewsDto.featuredSlot === undefined) {
+      if (updateNewsDto.isFeatured) {
+        featuredSlot = article.featuredSlot && article.featuredSlot !== NewsFeaturedSlot.NONE
+          ? article.featuredSlot
+          : NewsFeaturedSlot.MAIN;
+      } else {
+        featuredSlot = NewsFeaturedSlot.NONE;
+      }
+    }
+
     const updatePayload: Record<string, any> = {
       ...updateNewsDto,
       slug,
       previousSlugs,
       publishedAt,
+      isFeatured,
+      featuredSlot,
     };
+
+    if (updateNewsDto.isPinned !== undefined) {
+      updatePayload.isPinned = Boolean(updateNewsDto.isPinned);
+    }
+
+    if (updateNewsDto.reporterName !== undefined) {
+      updatePayload.reporterName = updateNewsDto.reporterName ? updateNewsDto.reporterName.trim() : undefined;
+    }
+
+    if (updateNewsDto.photographerName !== undefined) {
+      updatePayload.photographerName = updateNewsDto.photographerName ? updateNewsDto.photographerName.trim() : undefined;
+    }
 
     if (updateNewsDto.content) {
       updatePayload.content = await this.processContentBase64Images(updateNewsDto.content);

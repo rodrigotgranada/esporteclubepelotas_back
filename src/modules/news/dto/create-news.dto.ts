@@ -8,7 +8,7 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
-import { NewsStatus } from '../schemas/news-article.schema.js';
+import { NewsFeaturedSlot, NewsStatus } from '../schemas/news-article.schema.js';
 
 export class CreateNewsDto {
   @ApiProperty({ description: 'Título da matéria', example: 'Pelotas vence o clássico Farroupilha por 2 a 0' })
@@ -64,6 +64,28 @@ export class CreateNewsDto {
   @IsBoolean()
   @IsOptional()
   isFeatured?: boolean;
+
+  @ApiPropertyOptional({ enum: NewsFeaturedSlot, default: NewsFeaturedSlot.NONE, example: NewsFeaturedSlot.MAIN })
+  @IsEnum(NewsFeaturedSlot)
+  @IsOptional()
+  featuredSlot?: NewsFeaturedSlot;
+
+  @ApiPropertyOptional({ description: 'Fixar matéria no topo do feed de notícias', default: false })
+  @IsBoolean()
+  @IsOptional()
+  isPinned?: boolean;
+
+  @ApiPropertyOptional({ description: 'Nome do repórter / autor do texto (crédito livre)', example: 'Gustavo Freitas / Assessoria FGF' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(120)
+  reporterName?: string;
+
+  @ApiPropertyOptional({ description: 'Nome do fotógrafo / agência de fotos (crédito livre)', example: 'Lucas Silva / Foto Pelotas' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(120)
+  photographerName?: string;
 
   @ApiPropertyOptional({ description: 'Data/Hora de publicação ou agendamento (ISO 8601 UTC)', example: '2026-11-03T12:00:00.000Z' })
   @IsString()

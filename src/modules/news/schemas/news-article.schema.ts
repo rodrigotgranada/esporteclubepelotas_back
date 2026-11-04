@@ -10,6 +10,12 @@ export enum NewsStatus {
   ARCHIVED = 'ARCHIVED',
 }
 
+export enum NewsFeaturedSlot {
+  MAIN = 'MAIN',
+  SECONDARY = 'SECONDARY',
+  NONE = 'NONE',
+}
+
 @Schema({ timestamps: true })
 export class NewsArticle {
   @Prop({ type: String, required: true, trim: true })
@@ -48,6 +54,18 @@ export class NewsArticle {
   @Prop({ type: Boolean, default: false, index: true })
   isFeatured: boolean;
 
+  @Prop({ type: String, enum: NewsFeaturedSlot, default: NewsFeaturedSlot.NONE, index: true })
+  featuredSlot: NewsFeaturedSlot;
+
+  @Prop({ type: Boolean, default: false, index: true })
+  isPinned: boolean;
+
+  @Prop({ type: String, trim: true })
+  reporterName?: string;
+
+  @Prop({ type: String, trim: true })
+  photographerName?: string;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   author: Types.ObjectId;
 
@@ -70,7 +88,8 @@ export class NewsArticle {
 export const NewsArticleSchema = SchemaFactory.createForClass(NewsArticle);
 
 // Compound index for efficient public feed listing (published + active + publishedAt DESC)
-NewsArticleSchema.index({ isActive: 1, status: 1, publishedAt: -1 });
+NewsArticleSchema.index({ isActive: 1, status: 1, isPinned: -1, publishedAt: -1 });
+NewsArticleSchema.index({ isActive: 1, status: 1, featuredSlot: 1, publishedAt: -1 });
 // Compound index for featured news
 NewsArticleSchema.index({ isActive: 1, status: 1, isFeatured: 1, publishedAt: -1 });
 // Text index for search on title, subtitle, and summary

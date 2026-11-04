@@ -96,4 +96,40 @@ describe('NewsService', () => {
       await expect(service.findBySlug('slug-inexistente')).rejects.toThrow(NotFoundException);
     });
   });
+
+  describe('findFeatured', () => {
+    it('should prioritize MAIN headline and SECONDARY highlights', async () => {
+      const mainArticle = {
+        _id: 'm1',
+        title: 'Manchetão Principal',
+        featuredSlot: 'MAIN',
+        toObject: () => ({ _id: 'm1', title: 'Manchetão Principal', featuredSlot: 'MAIN' }),
+      };
+      const secondaryArticle = {
+        _id: 's1',
+        title: 'Destaque Secundário',
+        featuredSlot: 'SECONDARY',
+        toObject: () => ({ _id: 's1', title: 'Destaque Secundário', featuredSlot: 'SECONDARY' }),
+      };
+
+      const createQuery = (result: any[]) => ({
+        sort: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        populate: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue(result),
+      });
+
+      mockArticleModel.find
+        .mockReturnValueOnce(createQuery([mainArticle])) // mainArticles query
+        .mockReturnValueOnce(createQuery([secondaryArticle])) // secondaryArticles query
+        .mockReturnValueOnce(createQuery([])) // remaining featured
+        .mockReturnValueOnce(createQuery([])); // recent fallback
+
+      const result = await service.findFeatured(3);
+      expect(result).toHaveLength(2);
+      expect(result[0].title).toBe('Manchetão Principal');
+      expect(result[1].title).toBe('Destaque Secundário');
+    });
+  });
 });
+

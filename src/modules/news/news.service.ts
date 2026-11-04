@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { NewsArticle, NewsArticleDocument, NewsStatus } from './schemas/news-article.schema.js';
+import { NewsArticle, NewsArticleDocument, NewsStatus, NewsFeaturedSlot } from './schemas/news-article.schema.js';
 import { NewsCategory, NewsCategoryDocument } from './schemas/news-category.schema.js';
 import { QueryNewsDto } from './dto/query-news.dto.js';
 
@@ -108,12 +108,20 @@ export class NewsService {
       andConditions.push({ isFeatured: query.isFeatured });
     }
 
+    if (query.featuredSlot) {
+      andConditions.push({ featuredSlot: query.featuredSlot });
+    }
+
+    if (query.isPinned !== undefined) {
+      andConditions.push({ isPinned: query.isPinned });
+    }
+
     const filter = andConditions.length > 1 ? { $and: andConditions } : andConditions[0];
 
     const [rawDocs, total] = await Promise.all([
       this.articleModel
         .find(filter)
-        .sort({ isFeatured: -1, publishedAt: -1 })
+        .sort({ isPinned: -1, isFeatured: -1, publishedAt: -1 })
         .skip(skip)
         .limit(limit)
         .populate('category', 'name slug')
@@ -187,38 +195,72 @@ export class NewsService {
   async findFeatured(limit = 4) {
     const publishCondition = this.getPublicPublishCondition();
 
-    const featuredArticles = await this.articleModel
+    // 1. Busca primeiro o Manchetão Principal (MAIN)
+    const mainArticles = await this.articleModel
       .find({
         ...publishCondition,
-        isFeatured: true,
+        featuredSlot: NewsFeaturedSlot.MAIN,
       })
       .sort({ publishedAt: -1 })
-      .limit(limit)
+      .limit(1)
       .populate('category', 'name slug')
       .populate('author', 'firstName lastName avatarUrl')
       .exec();
 
-    let allDocs = featuredArticles;
+    const collectedIds = mainArticles.map((a) => a._id);
 
-    // Se houver menos destaques que o limite, complementa com as matérias mais recentes
-    if (featuredArticles.length < limit) {
-      const excludeIds = featuredArticles.map((a) => a._id);
-      const remainingLimit = limit - featuredArticles.length;
-
-      const recentArticles = await this.articleModel
+    // 2. Busca os Destaques Secundários (SECONDARY)
+    let secondaryArticles: any[] = [];
+    if (collectedIds.length < limit) {
+      secondaryArticles = await this.articleModel
         .find({
           ...publishCondition,
-          _id: { $nin: excludeIds },
+          _id: { $nin: collectedIds },
+          featuredSlot: NewsFeaturedSlot.SECONDARY,
         })
         .sort({ publishedAt: -1 })
-        .limit(remainingLimit)
+        .limit(limit - collectedIds.length)
         .populate('category', 'name slug')
         .populate('author', 'firstName lastName avatarUrl')
         .exec();
 
-      allDocs = [...featuredArticles, ...recentArticles];
+      secondaryArticles.forEach((a) => collectedIds.push(a._id));
     }
 
+    // 3. Se ainda houver vagas, busca matérias marcadas com isFeatured genérico
+    let remainingFeatured: any[] = [];
+    if (collectedIds.length < limit) {
+      remainingFeatured = await this.articleModel
+        .find({
+          ...publishCondition,
+          _id: { $nin: collectedIds },
+          isFeatured: true,
+        })
+        .sort({ publishedAt: -1 })
+        .limit(limit - collectedIds.length)
+        .populate('category', 'name slug')
+        .populate('author', 'firstName lastName avatarUrl')
+        .exec();
+
+      remainingFeatured.forEach((a) => collectedIds.push(a._id));
+    }
+
+    // 4. Se ainda assim houver vagas, complementa com as mais recentes publicadas
+    let recentArticles: any[] = [];
+    if (collectedIds.length < limit) {
+      recentArticles = await this.articleModel
+        .find({
+          ...publishCondition,
+          _id: { $nin: collectedIds },
+        })
+        .sort({ publishedAt: -1 })
+        .limit(limit - collectedIds.length)
+        .populate('category', 'name slug')
+        .populate('author', 'firstName lastName avatarUrl')
+        .exec();
+    }
+
+    const allDocs = [...mainArticles, ...secondaryArticles, ...remainingFeatured, ...recentArticles];
     return allDocs.map((d) => this.mapArticle(d));
   }
 

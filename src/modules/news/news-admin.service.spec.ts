@@ -136,5 +136,59 @@ describe('NewsAdminService - Slugs & Lifecycle', () => {
         { new: true },
       );
     });
+
+    it('should demote other main articles when setting featuredSlot to MAIN', async () => {
+      mockArticleModel.updateMany = vi.fn().mockResolvedValue({ modifiedCount: 1 });
+
+      const existingArticle = {
+        _id: '60d5ec49f1b2c8b1f8e4e1a1',
+        title: 'Nova Matéria Destaque',
+        slug: 'nova-materia-destaque',
+        status: NewsStatus.PUBLISHED,
+        toObject: () => ({
+          _id: '60d5ec49f1b2c8b1f8e4e1a1',
+          title: 'Nova Matéria Destaque',
+          slug: 'nova-materia-destaque',
+        }),
+      };
+
+      mockArticleModel.findById.mockReturnValue({
+        populate: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue(existingArticle),
+      });
+
+      mockArticleModel.findByIdAndUpdate.mockReturnValue({
+        populate: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue(existingArticle),
+      });
+
+      await service.update('60d5ec49f1b2c8b1f8e4e1a1', {
+        featuredSlot: 'MAIN' as any,
+        isPinned: true,
+        reporterName: 'Gustavo Freitas',
+        photographerName: 'Lucas Silva',
+      });
+
+      expect(mockArticleModel.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          featuredSlot: 'MAIN',
+          isActive: true,
+        }),
+        { $set: { featuredSlot: 'SECONDARY' } },
+      );
+
+      expect(mockArticleModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        '60d5ec49f1b2c8b1f8e4e1a1',
+        expect.objectContaining({
+          isFeatured: true,
+          featuredSlot: 'MAIN',
+          isPinned: true,
+          reporterName: 'Gustavo Freitas',
+          photographerName: 'Lucas Silva',
+        }),
+        { new: true },
+      );
+    });
   });
 });
+

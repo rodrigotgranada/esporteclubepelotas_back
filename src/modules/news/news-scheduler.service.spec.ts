@@ -36,3 +36,4 @@ describe('NewsSchedulerService', () => {
     await expect(service.handleScheduledNewsPublishing()).resolves.not.toThrow();
   });
 });
+

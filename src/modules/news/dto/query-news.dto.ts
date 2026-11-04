@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { NewsStatus } from '../schemas/news-article.schema.js';
+import { NewsFeaturedSlot, NewsStatus } from '../schemas/news-article.schema.js';
 
 export class QueryNewsDto {
   @ApiPropertyOptional({ default: 1 })
@@ -44,5 +44,16 @@ export class QueryNewsDto {
   @IsBoolean()
   @IsOptional()
   isFeatured?: boolean;
+
+  @ApiPropertyOptional({ enum: NewsFeaturedSlot, description: 'Filtrar por slot de destaque' })
+  @IsEnum(NewsFeaturedSlot)
+  @IsOptional()
+  featuredSlot?: NewsFeaturedSlot;
+
+  @ApiPropertyOptional({ description: 'Filtrar por matérias fixadas no topo' })
+  @Type(() => Boolean)
+  @IsBoolean()
+  @IsOptional()
+  isPinned?: boolean;
 }
 
