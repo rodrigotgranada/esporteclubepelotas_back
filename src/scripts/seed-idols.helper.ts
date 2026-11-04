@@ -6,7 +6,7 @@ export const sampleIdols = [
     nickname: 'Flávio Minuano',
     slug: 'flavio-minuano',
     category: IdolCategory.PLAYER,
-    photoUrl: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=800&q=80',
+    photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80',
     gallery: [
       'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=800&q=80',
@@ -108,3 +108,4 @@ export const sampleIdols = [
     isActive: true,
   },
 ];
+
