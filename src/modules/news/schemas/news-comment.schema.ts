@@ -30,3 +30,4 @@ export const NewsCommentSchema = SchemaFactory.createForClass(NewsComment);
 
 // Index para consultas ordenadas por matéria e data decrescente
 NewsCommentSchema.index({ article: 1, isActive: 1, status: 1, createdAt: -1 });
+

@@ -4,6 +4,8 @@ import { Model, Types } from 'mongoose';
 import { NewsArticle, NewsArticleDocument, NewsStatus, NewsFeaturedSlot } from './schemas/news-article.schema.js';
 import { NewsCategory, NewsCategoryDocument } from './schemas/news-category.schema.js';
 import { NewsComment, NewsCommentDocument, NewsCommentStatus } from './schemas/news-comment.schema.js';
+import { NewsReaction, NewsReactionDocument } from './schemas/news-reaction.schema.js';
+import { User, UserDocument, UserStatus } from '../users/schemas/user.schema.js';
 import { QueryNewsDto } from './dto/query-news.dto.js';
 import { NewsReactionType } from './dto/react-news.dto.js';
 
@@ -16,7 +18,28 @@ export class NewsService {
     private readonly categoryModel: Model<NewsCategoryDocument>,
     @InjectModel(NewsComment.name)
     private readonly commentModel: Model<NewsCommentDocument>,
+    @InjectModel(NewsReaction.name)
+    private readonly reactionModel: Model<NewsReactionDocument>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<UserDocument>,
   ) {}
+
+  private async validateActiveUser(userId: string): Promise<UserDocument> {
+    if (!userId || !Types.ObjectId.isValid(userId)) {
+      throw new ForbiddenException('Usuário não autenticado.');
+    }
+
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado.');
+    }
+
+    if (user.status !== UserStatus.ACTIVE || user.isActive === false) {
+      throw new ForbiddenException('Sua conta precisa estar ativa e com o e-mail verificado para interagir.');
+    }
+
+    return user;
+  }
 
   private mapArticle(doc: any) {
     if (!doc) return null;
@@ -147,7 +170,6 @@ export class NewsService {
     const cleanSlug = slug.toLowerCase().trim();
     const publishCondition = this.getPublicPublishCondition();
 
-    // 1. Tenta encontrar pelo slug atual primário
     let article = await this.articleModel
       .findOne({
         slug: cleanSlug,
@@ -159,7 +181,6 @@ export class NewsService {
 
     let isRedirect = false;
 
-    // 2. Se não encontrou, busca no histórico previousSlugs (redirecionamento 301)
     if (!article) {
       article = await this.articleModel
         .findOne({
@@ -179,7 +200,6 @@ export class NewsService {
       throw new NotFoundException('Matéria não encontrada ou indisponível.');
     }
 
-    // Incrementa visualizações de forma assíncrona
     this.articleModel
       .updateOne({ _id: article._id }, { $inc: { viewsCount: 1 } })
       .exec()
@@ -199,7 +219,6 @@ export class NewsService {
   async findFeatured(limit = 4) {
     const publishCondition = this.getPublicPublishCondition();
 
-    // 1. Busca primeiro o Manchetão Principal (MAIN)
     const mainArticles = await this.articleModel
       .find({
         ...publishCondition,
@@ -213,7 +232,6 @@ export class NewsService {
 
     const collectedIds = mainArticles.map((a) => a._id);
 
-    // 2. Busca os Destaques Secundários (SECONDARY)
     let secondaryArticles: any[] = [];
     if (collectedIds.length < limit) {
       secondaryArticles = await this.articleModel
@@ -231,7 +249,6 @@ export class NewsService {
       secondaryArticles.forEach((a) => collectedIds.push(a._id));
     }
 
-    // 3. Se ainda houver vagas, busca matérias marcadas com isFeatured genérico
     let remainingFeatured: any[] = [];
     if (collectedIds.length < limit) {
       remainingFeatured = await this.articleModel
@@ -249,23 +266,35 @@ export class NewsService {
       remainingFeatured.forEach((a) => collectedIds.push(a._id));
     }
 
-    // 4. Se ainda assim houver vagas, complementa com as mais recentes publicadas
-    let recentArticles: any[] = [];
-    if (collectedIds.length < limit) {
-      recentArticles = await this.articleModel
-        .find({
-          ...publishCondition,
-          _id: { $nin: collectedIds },
-        })
-        .sort({ publishedAt: -1 })
-        .limit(limit - collectedIds.length)
-        .populate('category', 'name slug')
-        .populate('author', 'firstName lastName avatarUrl')
-        .exec();
-    }
+    const combined = [...mainArticles, ...secondaryArticles, ...remainingFeatured].slice(0, limit);
+    return combined.map((d) => this.mapArticle(d));
+  }
 
-    const allDocs = [...mainArticles, ...secondaryArticles, ...remainingFeatured, ...recentArticles];
-    return allDocs.map((d) => this.mapArticle(d));
+  async findRelated(slugOrId: string, limit = 3) {
+    const publishCondition = this.getPublicPublishCondition();
+    const article = await this.articleModel.findOne({
+      $or: [
+        { slug: slugOrId.toLowerCase() },
+        ...(Types.ObjectId.isValid(slugOrId) ? [{ _id: new Types.ObjectId(slugOrId) }] : []),
+      ],
+      isActive: true,
+    });
+
+    if (!article) return [];
+
+    const related = await this.articleModel
+      .find({
+        ...publishCondition,
+        _id: { $ne: article._id },
+        category: article.category,
+      })
+      .sort({ publishedAt: -1 })
+      .limit(limit)
+      .populate('category', 'name slug')
+      .populate('author', 'firstName lastName avatarUrl')
+      .exec();
+
+    return related.map((d) => this.mapArticle(d));
   }
 
   async findAllCategories() {
@@ -277,7 +306,36 @@ export class NewsService {
     return categories.map((c) => this.mapCategory(c));
   }
 
-  async reactToArticle(slugOrId: string, type: NewsReactionType) {
+  async getUserReaction(slugOrId: string, userId: string) {
+    if (!userId || !Types.ObjectId.isValid(userId)) {
+      return { userReaction: null };
+    }
+
+    const article = await this.articleModel.findOne({
+      $or: [
+        { slug: slugOrId.toLowerCase() },
+        ...(Types.ObjectId.isValid(slugOrId) ? [{ _id: new Types.ObjectId(slugOrId) }] : []),
+      ],
+      isActive: true,
+    });
+
+    if (!article) {
+      return { userReaction: null };
+    }
+
+    const existing = await this.reactionModel.findOne({
+      article: article._id,
+      user: new Types.ObjectId(userId),
+    });
+
+    return {
+      userReaction: existing ? existing.type : null,
+    };
+  }
+
+  async reactToArticle(slugOrId: string, userId: string, type: NewsReactionType) {
+    await this.validateActiveUser(userId);
+
     const article = await this.articleModel.findOne({
       $or: [
         { slug: slugOrId.toLowerCase() },
@@ -294,16 +352,62 @@ export class NewsService {
       throw new ForbiddenException('As reações estão desativadas para esta publicação.');
     }
 
-    const updated = await this.articleModel
-      .findByIdAndUpdate(
-        article._id,
+    const userObjectId = new Types.ObjectId(userId);
+    const existing = await this.reactionModel.findOne({
+      article: article._id,
+      user: userObjectId,
+    });
+
+    let userReaction: string | null = null;
+
+    if (existing && existing.type === type) {
+      // Toggle off: desmarca reação já existente
+      await this.reactionModel.deleteOne({ _id: existing._id });
+      await this.articleModel.updateOne(
+        { _id: article._id, [`reactions.${type}`]: { $gt: 0 } },
+        { $inc: { [`reactions.${type}`]: -1 } },
+      );
+      userReaction = null;
+    } else if (existing) {
+      // Troca de reação: decrementa anterior e incrementa nova
+      const previousType = existing.type;
+      existing.type = type;
+      await existing.save();
+
+      await this.articleModel.updateOne(
+        { _id: article._id, [`reactions.${previousType}`]: { $gt: 0 } },
+        { $inc: { [`reactions.${previousType}`]: -1 } },
+      );
+      await this.articleModel.updateOne(
+        { _id: article._id },
         { $inc: { [`reactions.${type}`]: 1 } },
-        { new: true, select: 'reactions' },
-      )
-      .exec();
+      );
+      userReaction = type;
+    } else {
+      // Primeira reação do usuário para esta matéria
+      await this.reactionModel.create({
+        article: article._id,
+        user: userObjectId,
+        type,
+      });
+      await this.articleModel.updateOne(
+        { _id: article._id },
+        { $inc: { [`reactions.${type}`]: 1 } },
+      );
+      userReaction = type;
+    }
+
+    const updated = await this.articleModel.findById(article._id).select('reactions').lean();
+    const raw = (updated as any)?.reactions || { wolf: 0, fire: 0, clap: 0, heart: 0 };
 
     return {
-      reactions: updated?.reactions || { wolf: 0, fire: 0, clap: 0, heart: 0 },
+      reactions: {
+        wolf: Math.max(0, raw.wolf || 0),
+        fire: Math.max(0, raw.fire || 0),
+        clap: Math.max(0, raw.clap || 0),
+        heart: Math.max(0, raw.heart || 0),
+      },
+      userReaction,
     };
   }
 
@@ -340,6 +444,8 @@ export class NewsService {
   }
 
   async addComment(slugOrId: string, userId: string, content: string) {
+    await this.validateActiveUser(userId);
+
     const article = await this.articleModel.findOne({
       $or: [
         { slug: slugOrId.toLowerCase() },
@@ -376,6 +482,8 @@ export class NewsService {
   }
 
   async deleteComment(commentId: string, userId: string, userRole: string) {
+    await this.validateActiveUser(userId);
+
     if (!Types.ObjectId.isValid(commentId)) {
       throw new NotFoundException('Comentário não encontrado.');
     }

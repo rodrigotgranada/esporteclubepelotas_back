@@ -1,18 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { NewsService } from './news.service.js';
 import { NewsStatus } from './schemas/news-article.schema.js';
+import { UserStatus } from '../users/schemas/user.schema.js';
 
 describe('NewsService', () => {
   let service: NewsService;
   let mockArticleModel: any;
   let mockCategoryModel: any;
   let mockCommentModel: any;
+  let mockReactionModel: any;
+  let mockUserModel: any;
+
+  const validUserId = '507f1f77bcf86cd799439011';
+  const activeUser = {
+    _id: validUserId,
+    status: UserStatus.ACTIVE,
+    isActive: true,
+  };
 
   beforeEach(() => {
     mockArticleModel = {
       find: vi.fn(),
       findOne: vi.fn(),
+      findById: vi.fn(),
       findByIdAndUpdate: vi.fn(),
       countDocuments: vi.fn(),
       updateOne: vi.fn().mockReturnValue({ exec: vi.fn().mockResolvedValue({}) }),
@@ -29,7 +40,23 @@ describe('NewsService', () => {
       create: vi.fn(),
     };
 
-    service = new NewsService(mockArticleModel, mockCategoryModel, mockCommentModel);
+    mockReactionModel = {
+      findOne: vi.fn(),
+      create: vi.fn(),
+      deleteOne: vi.fn(),
+    };
+
+    mockUserModel = {
+      findById: vi.fn().mockResolvedValue(activeUser),
+    };
+
+    service = new NewsService(
+      mockArticleModel,
+      mockCategoryModel,
+      mockCommentModel,
+      mockReactionModel,
+      mockUserModel,
+    );
   });
 
   describe('findBySlug', () => {
@@ -70,8 +97,6 @@ describe('NewsService', () => {
         }),
       };
 
-      // 1st findOne (by slug) returns null
-      // 2nd findOne (by previousSlugs) returns mockDoc
       const nullPopulate = {
         populate: vi.fn().mockReturnThis(),
         exec: vi.fn().mockResolvedValue(null),
@@ -128,10 +153,10 @@ describe('NewsService', () => {
       });
 
       mockArticleModel.find
-        .mockReturnValueOnce(createQuery([mainArticle])) // mainArticles query
-        .mockReturnValueOnce(createQuery([secondaryArticle])) // secondaryArticles query
-        .mockReturnValueOnce(createQuery([])) // remaining featured
-        .mockReturnValueOnce(createQuery([])); // recent fallback
+        .mockReturnValueOnce(createQuery([mainArticle]))
+        .mockReturnValueOnce(createQuery([secondaryArticle]))
+        .mockReturnValueOnce(createQuery([]))
+        .mockReturnValueOnce(createQuery([]));
 
       const result = await service.findFeatured(3);
       expect(result).toHaveLength(2);
@@ -141,28 +166,72 @@ describe('NewsService', () => {
   });
 
   describe('reactToArticle', () => {
-    it('should increment reaction count when reactions are allowed', async () => {
+    it('should increment reaction count for first reaction', async () => {
       mockArticleModel.findOne.mockResolvedValue({
-        _id: 'art-1',
+        _id: '507f1f77bcf86cd799439012',
         slug: 'materia-1',
         allowReactions: true,
       });
 
-      mockArticleModel.findByIdAndUpdate.mockReturnValue({
-        exec: vi.fn().mockResolvedValue({
-          reactions: { wolf: 1, fire: 0, clap: 0, heart: 0 },
+      mockReactionModel.findOne.mockResolvedValue(null);
+
+      mockArticleModel.findById.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue({
+            reactions: { wolf: 1, fire: 0, clap: 0, heart: 0 },
+          }),
         }),
       });
 
-      const res = await service.reactToArticle('materia-1', 'wolf');
+      const res = await service.reactToArticle('materia-1', validUserId, 'wolf' as any);
       expect(res.reactions.wolf).toBe(1);
+      expect(res.userReaction).toBe('wolf');
+      expect(mockReactionModel.create).toHaveBeenCalled();
+    });
+
+    it('should toggle off reaction when clicking the same reaction', async () => {
+      mockArticleModel.findOne.mockResolvedValue({
+        _id: '507f1f77bcf86cd799439012',
+        slug: 'materia-1',
+        allowReactions: true,
+      });
+
+      mockReactionModel.findOne.mockResolvedValue({
+        _id: 'reac-1',
+        type: 'wolf',
+      });
+
+      mockArticleModel.findById.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue({
+            reactions: { wolf: 0, fire: 0, clap: 0, heart: 0 },
+          }),
+        }),
+      });
+
+      const res = await service.reactToArticle('materia-1', validUserId, 'wolf' as any);
+      expect(res.reactions.wolf).toBe(0);
+      expect(res.userReaction).toBeNull();
+      expect(mockReactionModel.deleteOne).toHaveBeenCalled();
+    });
+
+    it('should throw ForbiddenException if user status is PENDING', async () => {
+      mockUserModel.findById.mockResolvedValue({
+        _id: validUserId,
+        status: UserStatus.PENDING,
+        isActive: true,
+      });
+
+      await expect(
+        service.reactToArticle('materia-1', validUserId, 'wolf' as any),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
   describe('addComment', () => {
-    it('should create comment and populate author when comments are allowed', async () => {
+    it('should create comment and populate author when account is active', async () => {
       mockArticleModel.findOne.mockResolvedValue({
-        _id: 'art-1',
+        _id: '507f1f77bcf86cd799439012',
         slug: 'materia-1',
         allowComments: true,
       });
@@ -180,10 +249,21 @@ describe('NewsService', () => {
 
       mockCommentModel.create.mockResolvedValue(mockCommentDoc);
 
-      const res = await service.addComment('materia-1', '507f1f77bcf86cd799439011', 'Belo jogo do Pelotas!');
+      const res = await service.addComment('materia-1', validUserId, 'Belo jogo do Pelotas!');
       expect(res.content).toBe('Belo jogo do Pelotas!');
       expect(res.author.firstName).toBe('Torcedor');
     });
+
+    it('should throw ForbiddenException if user account is not active', async () => {
+      mockUserModel.findById.mockResolvedValue({
+        _id: validUserId,
+        status: UserStatus.INACTIVE,
+        isActive: false,
+      });
+
+      await expect(
+        service.addComment('materia-1', validUserId, 'Texto teste'),
+      ).rejects.toThrow(ForbiddenException);
+    });
   });
 });
-

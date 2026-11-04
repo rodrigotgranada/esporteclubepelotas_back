@@ -45,10 +45,26 @@ export class NewsController {
     return this.newsService.getPrevNext(slug);
   }
 
+  @Get(':slug/my-reaction')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Obter a reação do usuário logado na matéria' })
+  async getMyReaction(@Param('slug') slug: string, @CurrentUser() user: any) {
+    const userId = user?.id || user?._id || user?.sub;
+    return this.newsService.getUserReaction(slug, userId);
+  }
+
   @Post(':slug/reactions')
-  @ApiOperation({ summary: 'Reagir a uma matéria com reação áureo-cerúlea' })
-  async reactToArticle(@Param('slug') slug: string, @Body() dto: ReactNewsDto) {
-    return this.newsService.reactToArticle(slug, dto.type);
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Reagir a uma matéria com reação áureo-cerúlea (apenas usuários logados e ativos)' })
+  async reactToArticle(
+    @Param('slug') slug: string,
+    @Body() dto: ReactNewsDto,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.id || user?._id || user?.sub;
+    return this.newsService.reactToArticle(slug, userId, dto.type);
   }
 
   @Get(':slug/comments')
@@ -60,7 +76,7 @@ export class NewsController {
   @Post(':slug/comments')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Adicionar comentário em uma matéria (apenas usuários autenticados)' })
+  @ApiOperation({ summary: 'Adicionar comentário em uma matéria (apenas usuários autenticados e ativos)' })
   async addComment(
     @Param('slug') slug: string,
     @Body() dto: CreateNewsCommentDto,
@@ -89,4 +105,3 @@ export class NewsController {
     return this.newsService.findBySlug(slug);
   }
 }
-

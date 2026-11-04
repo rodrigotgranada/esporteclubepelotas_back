@@ -14,3 +14,4 @@ export class CreateNewsCommentDto {
   @MaxLength(1000, { message: 'O comentário deve ter no máximo 1000 caracteres.' })
   content: string;
 }
+

@@ -4,6 +4,8 @@ import { PassportModule } from '@nestjs/passport';
 import { NewsArticle, NewsArticleSchema } from './schemas/news-article.schema.js';
 import { NewsCategory, NewsCategorySchema } from './schemas/news-category.schema.js';
 import { NewsComment, NewsCommentSchema } from './schemas/news-comment.schema.js';
+import { NewsReaction, NewsReactionSchema } from './schemas/news-reaction.schema.js';
+import { UsersModule } from '../users/users.module.js';
 import { NewsService } from './news.service.js';
 import { NewsAdminService } from './news-admin.service.js';
 import { NewsSchedulerService } from './news-scheduler.service.js';
@@ -17,7 +19,9 @@ import { StorageModule } from '../../common/providers/storage/storage.module.js'
       { name: NewsArticle.name, schema: NewsArticleSchema },
       { name: NewsCategory.name, schema: NewsCategorySchema },
       { name: NewsComment.name, schema: NewsCommentSchema },
+      { name: NewsReaction.name, schema: NewsReactionSchema },
     ]),
+    UsersModule,
     StorageModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
   ],
