@@ -76,3 +76,4 @@ export class CreateSquadDto {
   @IsOptional()
   isActive?: boolean;
 }
+

@@ -36,3 +36,4 @@ export class SquadsController {
     return this.squadsService.findAll(query);
   }
 }
+

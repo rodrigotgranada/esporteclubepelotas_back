@@ -92,3 +92,4 @@ export class CreateAthleteDto {
   @IsOptional()
   isActive?: boolean;
 }
+

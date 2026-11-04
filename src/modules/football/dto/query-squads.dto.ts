@@ -35,3 +35,4 @@ export class QuerySquadsDto {
   @IsOptional()
   limit?: number = 20;
 }
+

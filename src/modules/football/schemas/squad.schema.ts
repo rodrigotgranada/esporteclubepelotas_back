@@ -92,3 +92,4 @@ export const SquadSchema = SchemaFactory.createForClass(Squad);
 
 SquadSchema.index({ year: -1, category: 1, isActive: 1 });
 SquadSchema.index({ isCurrent: 1, category: 1 });
+

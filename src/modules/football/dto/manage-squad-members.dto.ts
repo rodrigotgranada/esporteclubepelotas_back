@@ -47,3 +47,4 @@ export class SetSquadMembersDto {
   @Type(() => SquadMemberDto)
   members: SquadMemberDto[];
 }
+

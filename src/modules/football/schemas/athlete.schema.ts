@@ -63,3 +63,4 @@ export class Athlete {
 export const AthleteSchema = SchemaFactory.createForClass(Athlete);
 
 AthleteSchema.index({ name: 'text', nickname: 'text', primaryPosition: 'text' });
+

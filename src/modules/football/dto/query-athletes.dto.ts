@@ -33,3 +33,4 @@ export class QueryAthletesDto {
   @IsOptional()
   limit?: number = 20;
 }
+
