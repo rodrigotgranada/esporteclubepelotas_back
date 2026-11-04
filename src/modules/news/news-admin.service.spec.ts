@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NewsAdminService } from './news-admin.service.js';
 import { NewsStatus } from './schemas/news-article.schema.js';
+import { NewsCommentStatus } from './schemas/news-comment.schema.js';
 
-describe('NewsAdminService - Slugs & Lifecycle', () => {
+describe('NewsAdminService - Slugs, Lifecycle & Moderation', () => {
   let service: NewsAdminService;
   let mockArticleModel: any;
   let mockCategoryModel: any;
+  let mockCommentModel: any;
   let mockStorageProvider: any;
 
   beforeEach(() => {
@@ -18,6 +20,11 @@ describe('NewsAdminService - Slugs & Lifecycle', () => {
     mockCategoryModel = {
       findOne: vi.fn(),
     };
+    mockCommentModel = {
+      find: vi.fn(),
+      findById: vi.fn(),
+      countDocuments: vi.fn(),
+    };
     mockStorageProvider = {
       uploadFile: vi.fn(),
       deleteFile: vi.fn(),
@@ -26,6 +33,7 @@ describe('NewsAdminService - Slugs & Lifecycle', () => {
     service = new NewsAdminService(
       mockArticleModel,
       mockCategoryModel,
+      mockCommentModel,
       mockStorageProvider,
     );
   });
@@ -47,19 +55,16 @@ describe('NewsAdminService - Slugs & Lifecycle', () => {
         }),
       };
 
-      // Mock adminFindById
       mockArticleModel.findById.mockReturnValue({
         populate: vi.fn().mockReturnThis(),
         exec: vi.fn().mockResolvedValue(existingArticle),
       });
 
-      // Mock generateUniqueSlug (find matching slugs)
       mockArticleModel.find.mockReturnValue({
         select: vi.fn().mockReturnThis(),
         exec: vi.fn().mockResolvedValue([]),
       });
 
-      // Mock findByIdAndUpdate
       mockArticleModel.findByIdAndUpdate.mockReturnValue({
         populate: vi.fn().mockReturnThis(),
         exec: vi.fn().mockResolvedValue({
@@ -126,7 +131,6 @@ describe('NewsAdminService - Slugs & Lifecycle', () => {
         title: 'Título Atualizado Sem Mexer no Slug',
       });
 
-      // slug must remain slug-antigo
       expect(mockArticleModel.findByIdAndUpdate).toHaveBeenCalledWith(
         '60d5ec49f1b2c8b1f8e4e1a1',
         expect.objectContaining({
@@ -190,5 +194,55 @@ describe('NewsAdminService - Slugs & Lifecycle', () => {
       );
     });
   });
-});
 
+  describe('Comments Moderation', () => {
+    it('should list comments with author and article populated', async () => {
+      const mockQuery = {
+        sort: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        populate: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue([
+          {
+            _id: 'com-1',
+            content: 'Ótima matéria!',
+            status: NewsCommentStatus.ACTIVE,
+            createdAt: new Date(),
+            article: { title: 'Notícia 1' },
+            author: { firstName: 'Torcedor' },
+          },
+        ]),
+      };
+
+      mockCommentModel.find.mockReturnValue(mockQuery);
+      mockCommentModel.countDocuments.mockReturnValue({
+        exec: vi.fn().mockResolvedValue(1),
+      });
+
+      const res = await service.adminFindComments({ page: 1, limit: 10 });
+      expect(res.data).toHaveLength(1);
+      expect(res.total).toBe(1);
+      expect(res.data[0].content).toBe('Ótima matéria!');
+    });
+
+    it('should update comment status between ACTIVE and HIDDEN', async () => {
+      const mockComment = {
+        _id: '507f1f77bcf86cd799439011',
+        status: NewsCommentStatus.ACTIVE,
+        isActive: true,
+        save: vi.fn().mockResolvedValue(true),
+      };
+
+      mockCommentModel.findById.mockResolvedValue(mockComment);
+
+      const res = await service.adminUpdateCommentStatus(
+        '507f1f77bcf86cd799439011',
+        NewsCommentStatus.HIDDEN,
+      );
+
+      expect(mockComment.status).toBe(NewsCommentStatus.HIDDEN);
+      expect(res.status).toBe(NewsCommentStatus.HIDDEN);
+      expect(mockComment.save).toHaveBeenCalled();
+    });
+  });
+});

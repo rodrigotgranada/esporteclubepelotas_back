@@ -68,9 +68,13 @@ export class NewsController {
   }
 
   @Get(':slug/comments')
-  @ApiOperation({ summary: 'Listar comentários públicos de uma matéria' })
-  async getComments(@Param('slug') slug: string) {
-    return this.newsService.getComments(slug);
+  @ApiOperation({ summary: 'Listar comentários públicos de uma matéria com paginação' })
+  async getComments(
+    @Param('slug') slug: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.newsService.getComments(slug, page, limit);
   }
 
   @Post(':slug/comments')

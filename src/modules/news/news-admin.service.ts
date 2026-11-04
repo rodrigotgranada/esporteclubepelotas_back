@@ -14,6 +14,7 @@ import {
   NewsFeaturedSlot,
 } from './schemas/news-article.schema.js';
 import { NewsCategory, NewsCategoryDocument } from './schemas/news-category.schema.js';
+import { NewsComment, NewsCommentDocument, NewsCommentStatus } from './schemas/news-comment.schema.js';
 import { CreateNewsDto } from './dto/create-news.dto.js';
 import { UpdateNewsDto } from './dto/update-news.dto.js';
 import { QueryNewsDto } from './dto/query-news.dto.js';
@@ -34,6 +35,8 @@ export class NewsAdminService {
     private readonly articleModel: Model<NewsArticleDocument>,
     @InjectModel(NewsCategory.name)
     private readonly categoryModel: Model<NewsCategoryDocument>,
+    @InjectModel(NewsComment.name)
+    private readonly commentModel: Model<NewsCommentDocument>,
     @Inject(STORAGE_PROVIDER_TOKEN)
     private readonly storageProvider: IStorageProvider,
   ) {}
@@ -477,5 +480,98 @@ export class NewsAdminService {
 
     const populated = await duplicated.populate('category', 'name slug');
     return this.mapArticle(populated);
+  }
+
+  async adminFindComments(query: {
+    page?: number;
+    limit?: number;
+    status?: NewsCommentStatus;
+    search?: string;
+    articleId?: string;
+  }) {
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.max(1, Math.min(50, Number(query.limit) || 10));
+    const skip = (page - 1) * limit;
+
+    const filter: Record<string, any> = {
+      isActive: true,
+    };
+
+    if (query.status) {
+      filter.status = query.status;
+    }
+
+    if (query.articleId && Types.ObjectId.isValid(query.articleId)) {
+      filter.article = new Types.ObjectId(query.articleId);
+    }
+
+    if (query.search) {
+      filter.content = new RegExp(query.search.trim(), 'i');
+    }
+
+    const [comments, total] = await Promise.all([
+      this.commentModel
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('article', 'title slug coverImage')
+        .populate('author', 'firstName lastName email avatar avatarUrl role')
+        .exec(),
+      this.commentModel.countDocuments(filter).exec(),
+    ]);
+
+    return {
+      data: comments.map((c) => ({
+        _id: c._id.toString(),
+        id: c._id.toString(),
+        content: c.content,
+        status: c.status,
+        createdAt: (c as any).createdAt,
+        article: c.article,
+        author: c.author,
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
+  }
+
+  async adminUpdateCommentStatus(commentId: string, status: NewsCommentStatus) {
+    if (!Types.ObjectId.isValid(commentId)) {
+      throw new NotFoundException('Comentário não encontrado.');
+    }
+
+    const comment = await this.commentModel.findById(commentId);
+    if (!comment || !comment.isActive) {
+      throw new NotFoundException('Comentário não encontrado.');
+    }
+
+    comment.status = status;
+    await comment.save();
+
+    return {
+      _id: comment._id.toString(),
+      id: comment._id.toString(),
+      status: comment.status,
+      message: 'Status do comentário atualizado com sucesso.',
+    };
+  }
+
+  async adminDeleteComment(commentId: string) {
+    if (!Types.ObjectId.isValid(commentId)) {
+      throw new NotFoundException('Comentário não encontrado.');
+    }
+
+    const comment = await this.commentModel.findById(commentId);
+    if (!comment || !comment.isActive) {
+      throw new NotFoundException('Comentário não encontrado.');
+    }
+
+    comment.isActive = false;
+    await comment.save();
+
+    return { success: true, message: 'Comentário excluído com sucesso.' };
   }
 }

@@ -411,7 +411,7 @@ export class NewsService {
     };
   }
 
-  async getComments(slugOrId: string) {
+  async getComments(slugOrId: string, page = 1, limit = 10) {
     const article = await this.articleModel.findOne({
       $or: [
         { slug: slugOrId.toLowerCase() },
@@ -424,23 +424,41 @@ export class NewsService {
       throw new NotFoundException('Matéria não encontrada.');
     }
 
-    const comments = await this.commentModel
-      .find({
-        article: article._id,
-        isActive: true,
-        status: NewsCommentStatus.ACTIVE,
-      })
-      .sort({ createdAt: -1 })
-      .populate('author', 'firstName lastName avatar avatarUrl role')
-      .exec();
+    const safePage = Math.max(1, Number(page) || 1);
+    const safeLimit = Math.max(1, Math.min(50, Number(limit) || 10));
+    const skip = (safePage - 1) * safeLimit;
 
-    return comments.map((c) => ({
-      _id: c._id.toString(),
-      id: c._id.toString(),
-      content: c.content,
-      createdAt: (c as any).createdAt,
-      author: c.author,
-    }));
+    const filter = {
+      article: article._id,
+      isActive: true,
+      status: NewsCommentStatus.ACTIVE,
+    };
+
+    const [comments, total] = await Promise.all([
+      this.commentModel
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(safeLimit)
+        .populate('author', 'firstName lastName avatar avatarUrl role')
+        .exec(),
+      this.commentModel.countDocuments(filter).exec(),
+    ]);
+
+    return {
+      data: comments.map((c) => ({
+        _id: c._id.toString(),
+        id: c._id.toString(),
+        content: c.content,
+        createdAt: (c as any).createdAt,
+        author: c.author,
+      })),
+      total,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit) || 1,
+      hasMore: safePage * safeLimit < total,
+    };
   }
 
   async addComment(slugOrId: string, userId: string, content: string) {

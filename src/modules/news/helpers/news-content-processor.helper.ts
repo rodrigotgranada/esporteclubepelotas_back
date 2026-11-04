@@ -61,3 +61,4 @@ export async function processContentBase64Images(
     content: await processNodes(content.content),
   };
 }
+

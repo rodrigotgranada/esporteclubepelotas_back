@@ -19,6 +19,7 @@ import { CreateNewsDto } from './dto/create-news.dto.js';
 import { UpdateNewsDto } from './dto/update-news.dto.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { QueryNewsDto } from './dto/query-news.dto.js';
+import { NewsCommentStatus } from './schemas/news-comment.schema.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PermissionsGuard } from '../../common/guards/permissions/permissions.guard.js';
 import { Permissions } from '../../common/decorators/permissions/permissions.decorator.js';
@@ -56,6 +57,33 @@ export class NewsAdminController {
   @UseInterceptors(FileInterceptor('image'))
   async uploadContentImage(@UploadedFile() file: any) {
     return this.newsAdminService.uploadContentImage(file);
+  }
+
+  @Get('comments')
+  @ApiOperation({ summary: 'Listar comentários de todas as matérias para moderação' })
+  async adminFindComments(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('status') status?: NewsCommentStatus,
+    @Query('search') search?: string,
+    @Query('articleId') articleId?: string,
+  ) {
+    return this.newsAdminService.adminFindComments({ page, limit, status, search, articleId });
+  }
+
+  @Patch('comments/:commentId/status')
+  @ApiOperation({ summary: 'Alterar status de moderação do comentário (ACTIVE ou HIDDEN)' })
+  async adminUpdateCommentStatus(
+    @Param('commentId') commentId: string,
+    @Body('status') status: NewsCommentStatus,
+  ) {
+    return this.newsAdminService.adminUpdateCommentStatus(commentId, status);
+  }
+
+  @Delete('comments/:commentId')
+  @ApiOperation({ summary: 'Excluir comentário na moderação (soft-delete)' })
+  async adminDeleteComment(@Param('commentId') commentId: string) {
+    return this.newsAdminService.adminDeleteComment(commentId);
   }
 
   @Get(':id')

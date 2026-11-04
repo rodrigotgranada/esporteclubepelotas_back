@@ -266,4 +266,38 @@ describe('NewsService', () => {
       ).rejects.toThrow(ForbiddenException);
     });
   });
+
+  describe('getComments', () => {
+    it('should return paginated comments with total and hasMore', async () => {
+      mockArticleModel.findOne.mockResolvedValue({
+        _id: '507f1f77bcf86cd799439012',
+        slug: 'materia-1',
+      });
+
+      const mockQuery = {
+        sort: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        populate: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue([
+          {
+            _id: 'com-1',
+            content: 'Excelente!',
+            createdAt: new Date(),
+            author: { firstName: 'Torcedor' },
+          },
+        ]),
+      };
+
+      mockCommentModel.find.mockReturnValue(mockQuery);
+      mockCommentModel.countDocuments = vi.fn().mockReturnValue({
+        exec: vi.fn().mockResolvedValue(1),
+      });
+
+      const res = await service.getComments('materia-1', 1, 10);
+      expect(res.data).toHaveLength(1);
+      expect(res.total).toBe(1);
+      expect(res.hasMore).toBe(false);
+    });
+  });
 });
