@@ -22,6 +22,8 @@ import {
   STORAGE_PROVIDER_TOKEN,
 } from '../../common/providers/storage/storage.interface.js';
 import type { IStorageProvider } from '../../common/providers/storage/storage.interface.js';
+import { slugify, generateUniqueArticleSlug } from './helpers/news-slug.helper.js';
+import { processContentBase64Images } from './helpers/news-content-processor.helper.js';
 
 @Injectable()
 export class NewsAdminService {
@@ -73,53 +75,10 @@ export class NewsAdminService {
   }
 
   /**
-   * Helper para sanitizar strings e produzir slugs amigáveis.
-   * Remove acentos, caracteres especiais e substitui espaços por hífens.
-   */
-  private slugify(text: string): string {
-    const slug = text
-      .toString()
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)+/g, '');
-    return slug || 'materia';
-  }
-
-  /**
    * Garante slug único prevenindo colisões (ex: noticia, noticia-1, noticia-2).
    */
   async generateUniqueSlug(title: string, currentArticleId?: string): Promise<string> {
-    const baseSlug = this.slugify(title);
-
-    // Encontra todos os slugs que começam com o baseSlug
-    const regex = new RegExp(`^${baseSlug}(-[0-9]+)?$`);
-    const existingArticles = await this.articleModel
-      .find({ slug: regex })
-      .select('_id slug')
-      .exec();
-
-    // Filtra artigos que não sejam o próprio que está sendo editado
-    const otherSlugs = existingArticles
-      .filter((a) => !currentArticleId || a._id.toString() !== currentArticleId.toString())
-      .map((a) => a.slug);
-
-    if (!otherSlugs.includes(baseSlug)) {
-      return baseSlug;
-    }
-
-    // Se houver colisão, busca o maior índice numérico sufixado
-    let maxSuffix = 0;
-    for (const s of otherSlugs) {
-      const match = s.match(new RegExp(`^${baseSlug}-([0-9]+)$`));
-      if (match && match[1]) {
-        const num = parseInt(match[1], 10);
-        if (num > maxSuffix) maxSuffix = num;
-      }
-    }
-
-    return `${baseSlug}-${maxSuffix + 1}`;
+    return generateUniqueArticleSlug(title, this.articleModel, currentArticleId);
   }
 
   async adminFindAll(query: QueryNewsDto) {
@@ -224,7 +183,7 @@ export class NewsAdminService {
 
     let content = createNewsDto.content;
     if (content) {
-      content = await this.processContentBase64Images(content);
+      content = await processContentBase64Images(content, this.storageProvider);
     }
 
     let featuredSlot = createNewsDto.featuredSlot || NewsFeaturedSlot.NONE;
@@ -351,7 +310,7 @@ export class NewsAdminService {
     }
 
     if (updateNewsDto.content) {
-      updatePayload.content = await this.processContentBase64Images(updateNewsDto.content);
+      updatePayload.content = await processContentBase64Images(updateNewsDto.content, this.storageProvider);
     }
 
     if (updateNewsDto.category) {
@@ -434,7 +393,7 @@ export class NewsAdminService {
   }
 
   async createCategory(createCategoryDto: CreateCategoryDto) {
-    const baseSlug = this.slugify(createCategoryDto.name);
+    const baseSlug = slugify(createCategoryDto.name);
 
     let slug = baseSlug;
     let counter = 1;
@@ -476,59 +435,6 @@ export class NewsAdminService {
 
     const url = await this.storageProvider.uploadFile(file.buffer, fileName, folder, file.mimetype);
     return { url };
-  }
-
-  private async processContentBase64Images(content: Record<string, any>): Promise<Record<string, any>> {
-    if (!content || !Array.isArray(content.content)) {
-      return content;
-    }
-
-    const processNodes = async (nodes: any[]): Promise<any[]> => {
-      const result: any[] = [];
-      for (const node of nodes) {
-        if (node.type === 'image' && typeof node.attrs?.src === 'string' && node.attrs.src.startsWith('data:image/')) {
-          try {
-            const dataUrl: string = node.attrs.src;
-            const matches = dataUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-            if (matches && matches.length === 3) {
-              const mimeType = matches[1];
-              const buffer = Buffer.from(matches[2], 'base64');
-              const ext = mimeType.split('/')[1] || 'png';
-              const unique = Math.round(Math.random() * 1e6);
-              const fileName = `content-${Date.now()}-${unique}.${ext}`;
-              const folder = `news/content`;
-
-              const url = await this.storageProvider.uploadFile(buffer, fileName, folder, mimeType);
-              result.push({
-                ...node,
-                attrs: {
-                  ...node.attrs,
-                  src: url,
-                },
-              });
-              continue;
-            }
-          } catch (err) {
-            this.logger.error({ err }, 'Failed to convert base64 image in content to storage url');
-          }
-        }
-
-        if (Array.isArray(node.content)) {
-          result.push({
-            ...node,
-            content: await processNodes(node.content),
-          });
-        } else {
-          result.push(node);
-        }
-      }
-      return result;
-    };
-
-    return {
-      ...content,
-      content: await processNodes(content.content),
-    };
   }
 
   async duplicate(id: string, userId: string) {
