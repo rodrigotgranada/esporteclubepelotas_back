@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { NewsArticle, NewsArticleDocument, NewsStatus, NewsFeaturedSlot } from './schemas/news-article.schema.js';
 import { NewsCategory, NewsCategoryDocument } from './schemas/news-category.schema.js';
+import { NewsComment, NewsCommentDocument, NewsCommentStatus } from './schemas/news-comment.schema.js';
 import { QueryNewsDto } from './dto/query-news.dto.js';
+import { NewsReactionType } from './dto/react-news.dto.js';
 
 @Injectable()
 export class NewsService {
@@ -12,6 +14,8 @@ export class NewsService {
     private readonly articleModel: Model<NewsArticleDocument>,
     @InjectModel(NewsCategory.name)
     private readonly categoryModel: Model<NewsCategoryDocument>,
+    @InjectModel(NewsComment.name)
+    private readonly commentModel: Model<NewsCommentDocument>,
   ) {}
 
   private mapArticle(doc: any) {
@@ -271,5 +275,172 @@ export class NewsService {
       .exec();
 
     return categories.map((c) => this.mapCategory(c));
+  }
+
+  async reactToArticle(slugOrId: string, type: NewsReactionType) {
+    const article = await this.articleModel.findOne({
+      $or: [
+        { slug: slugOrId.toLowerCase() },
+        ...(Types.ObjectId.isValid(slugOrId) ? [{ _id: new Types.ObjectId(slugOrId) }] : []),
+      ],
+      isActive: true,
+    });
+
+    if (!article) {
+      throw new NotFoundException('Matéria não encontrada.');
+    }
+
+    if (article.allowReactions === false) {
+      throw new ForbiddenException('As reações estão desativadas para esta publicação.');
+    }
+
+    const updated = await this.articleModel
+      .findByIdAndUpdate(
+        article._id,
+        { $inc: { [`reactions.${type}`]: 1 } },
+        { new: true, select: 'reactions' },
+      )
+      .exec();
+
+    return {
+      reactions: updated?.reactions || { wolf: 0, fire: 0, clap: 0, heart: 0 },
+    };
+  }
+
+  async getComments(slugOrId: string) {
+    const article = await this.articleModel.findOne({
+      $or: [
+        { slug: slugOrId.toLowerCase() },
+        ...(Types.ObjectId.isValid(slugOrId) ? [{ _id: new Types.ObjectId(slugOrId) }] : []),
+      ],
+      isActive: true,
+    });
+
+    if (!article) {
+      throw new NotFoundException('Matéria não encontrada.');
+    }
+
+    const comments = await this.commentModel
+      .find({
+        article: article._id,
+        isActive: true,
+        status: NewsCommentStatus.ACTIVE,
+      })
+      .sort({ createdAt: -1 })
+      .populate('author', 'firstName lastName avatar avatarUrl role')
+      .exec();
+
+    return comments.map((c) => ({
+      _id: c._id.toString(),
+      id: c._id.toString(),
+      content: c.content,
+      createdAt: (c as any).createdAt,
+      author: c.author,
+    }));
+  }
+
+  async addComment(slugOrId: string, userId: string, content: string) {
+    const article = await this.articleModel.findOne({
+      $or: [
+        { slug: slugOrId.toLowerCase() },
+        ...(Types.ObjectId.isValid(slugOrId) ? [{ _id: new Types.ObjectId(slugOrId) }] : []),
+      ],
+      isActive: true,
+    });
+
+    if (!article) {
+      throw new NotFoundException('Matéria não encontrada.');
+    }
+
+    if (article.allowComments === false) {
+      throw new ForbiddenException('Os comentários estão desativados para esta publicação.');
+    }
+
+    const comment = await this.commentModel.create({
+      article: article._id,
+      author: new Types.ObjectId(userId),
+      content: content.trim(),
+      status: NewsCommentStatus.ACTIVE,
+      isActive: true,
+    });
+
+    const populated = await comment.populate('author', 'firstName lastName avatar avatarUrl role');
+
+    return {
+      _id: populated._id.toString(),
+      id: populated._id.toString(),
+      content: populated.content,
+      createdAt: (populated as any).createdAt,
+      author: populated.author,
+    };
+  }
+
+  async deleteComment(commentId: string, userId: string, userRole: string) {
+    if (!Types.ObjectId.isValid(commentId)) {
+      throw new NotFoundException('Comentário não encontrado.');
+    }
+
+    const comment = await this.commentModel.findById(commentId);
+    if (!comment || !comment.isActive) {
+      throw new NotFoundException('Comentário não encontrado.');
+    }
+
+    const isAuthor = comment.author.toString() === userId;
+    const isStaff = ['Owner', 'Admin', 'Editor'].includes(userRole);
+
+    if (!isAuthor && !isStaff) {
+      throw new ForbiddenException('Você não tem permissão para remover este comentário.');
+    }
+
+    comment.isActive = false;
+    await comment.save();
+
+    return { success: true, message: 'Comentário removido com sucesso.' };
+  }
+
+  async getPrevNext(slugOrId: string) {
+    const article = await this.articleModel.findOne({
+      $or: [
+        { slug: slugOrId.toLowerCase() },
+        ...(Types.ObjectId.isValid(slugOrId) ? [{ _id: new Types.ObjectId(slugOrId) }] : []),
+      ],
+      isActive: true,
+    });
+
+    if (!article || !article.publishedAt) {
+      return { previous: null, next: null };
+    }
+
+    const publishCondition = this.getPublicPublishCondition();
+
+    const [prev, next] = await Promise.all([
+      this.articleModel
+        .findOne({
+          ...publishCondition,
+          _id: { $ne: article._id },
+          publishedAt: { $lt: article.publishedAt },
+        })
+        .sort({ publishedAt: -1 })
+        .select('title slug coverImage publishedAt')
+        .exec(),
+      this.articleModel
+        .findOne({
+          ...publishCondition,
+          _id: { $ne: article._id },
+          publishedAt: { $gt: article.publishedAt },
+        })
+        .sort({ publishedAt: 1 })
+        .select('title slug coverImage publishedAt')
+        .exec(),
+    ]);
+
+    return {
+      previous: prev
+        ? { title: prev.title, slug: prev.slug, coverImage: prev.coverImage, publishedAt: prev.publishedAt }
+        : null,
+      next: next
+        ? { title: next.title, slug: next.slug, coverImage: next.coverImage, publishedAt: next.publishedAt }
+        : null,
+    };
   }
 }

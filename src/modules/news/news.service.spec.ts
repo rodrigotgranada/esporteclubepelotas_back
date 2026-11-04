@@ -7,11 +7,13 @@ describe('NewsService', () => {
   let service: NewsService;
   let mockArticleModel: any;
   let mockCategoryModel: any;
+  let mockCommentModel: any;
 
   beforeEach(() => {
     mockArticleModel = {
       find: vi.fn(),
       findOne: vi.fn(),
+      findByIdAndUpdate: vi.fn(),
       countDocuments: vi.fn(),
       updateOne: vi.fn().mockReturnValue({ exec: vi.fn().mockResolvedValue({}) }),
     };
@@ -21,7 +23,13 @@ describe('NewsService', () => {
       find: vi.fn(),
     };
 
-    service = new NewsService(mockArticleModel, mockCategoryModel);
+    mockCommentModel = {
+      find: vi.fn(),
+      findById: vi.fn(),
+      create: vi.fn(),
+    };
+
+    service = new NewsService(mockArticleModel, mockCategoryModel, mockCommentModel);
   });
 
   describe('findBySlug', () => {
@@ -129,6 +137,52 @@ describe('NewsService', () => {
       expect(result).toHaveLength(2);
       expect(result[0].title).toBe('Manchetão Principal');
       expect(result[1].title).toBe('Destaque Secundário');
+    });
+  });
+
+  describe('reactToArticle', () => {
+    it('should increment reaction count when reactions are allowed', async () => {
+      mockArticleModel.findOne.mockResolvedValue({
+        _id: 'art-1',
+        slug: 'materia-1',
+        allowReactions: true,
+      });
+
+      mockArticleModel.findByIdAndUpdate.mockReturnValue({
+        exec: vi.fn().mockResolvedValue({
+          reactions: { wolf: 1, fire: 0, clap: 0, heart: 0 },
+        }),
+      });
+
+      const res = await service.reactToArticle('materia-1', 'wolf');
+      expect(res.reactions.wolf).toBe(1);
+    });
+  });
+
+  describe('addComment', () => {
+    it('should create comment and populate author when comments are allowed', async () => {
+      mockArticleModel.findOne.mockResolvedValue({
+        _id: 'art-1',
+        slug: 'materia-1',
+        allowComments: true,
+      });
+
+      const mockCommentDoc = {
+        _id: 'com-1',
+        content: 'Belo jogo do Pelotas!',
+        populate: vi.fn().mockResolvedValue({
+          _id: 'com-1',
+          content: 'Belo jogo do Pelotas!',
+          createdAt: new Date(),
+          author: { firstName: 'Torcedor', lastName: 'X' },
+        }),
+      };
+
+      mockCommentModel.create.mockResolvedValue(mockCommentDoc);
+
+      const res = await service.addComment('materia-1', '507f1f77bcf86cd799439011', 'Belo jogo do Pelotas!');
+      expect(res.content).toBe('Belo jogo do Pelotas!');
+      expect(res.author.firstName).toBe('Torcedor');
     });
   });
 });

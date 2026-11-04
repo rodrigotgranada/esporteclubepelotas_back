@@ -1,7 +1,20 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { NewsService } from './news.service.js';
 import { QueryNewsDto } from './dto/query-news.dto.js';
+import { ReactNewsDto } from './dto/react-news.dto.js';
+import { CreateNewsCommentDto } from './dto/create-news-comment.dto.js';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 
 @ApiTags('News (Público)')
 @Controller('news')
@@ -24,6 +37,50 @@ export class NewsController {
   @ApiOperation({ summary: 'Listar categorias públicas ativas' })
   async findAllCategories() {
     return this.newsService.findAllCategories();
+  }
+
+  @Get(':slug/prev-next')
+  @ApiOperation({ summary: 'Obter matéria anterior e próxima cronológica' })
+  async getPrevNext(@Param('slug') slug: string) {
+    return this.newsService.getPrevNext(slug);
+  }
+
+  @Post(':slug/reactions')
+  @ApiOperation({ summary: 'Reagir a uma matéria com reação áureo-cerúlea' })
+  async reactToArticle(@Param('slug') slug: string, @Body() dto: ReactNewsDto) {
+    return this.newsService.reactToArticle(slug, dto.type);
+  }
+
+  @Get(':slug/comments')
+  @ApiOperation({ summary: 'Listar comentários públicos de uma matéria' })
+  async getComments(@Param('slug') slug: string) {
+    return this.newsService.getComments(slug);
+  }
+
+  @Post(':slug/comments')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Adicionar comentário em uma matéria (apenas usuários autenticados)' })
+  async addComment(
+    @Param('slug') slug: string,
+    @Body() dto: CreateNewsCommentDto,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.id || user?._id || user?.sub;
+    return this.newsService.addComment(slug, userId, dto.content);
+  }
+
+  @Delete('comments/:commentId')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Remover um comentário (próprio autor ou moderador)' })
+  async deleteComment(
+    @Param('commentId') commentId: string,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.id || user?._id || user?.sub;
+    const userRole = user?.role || 'User';
+    return this.newsService.deleteComment(commentId, userId, userRole);
   }
 
   @Get(':slug')

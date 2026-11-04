@@ -73,8 +73,20 @@ export class NewsAdminController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Atualizar uma matéria existente' })
-  async update(@Param('id') id: string, @Body() updateNewsDto: UpdateNewsDto) {
-    return this.newsAdminService.update(id, updateNewsDto);
+  async update(
+    @Param('id') id: string,
+    @Body() updateNewsDto: UpdateNewsDto,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.id || user?._id || user?.sub;
+    return this.newsAdminService.update(id, updateNewsDto, userId);
+  }
+
+  @Post(':id/duplicate')
+  @ApiOperation({ summary: 'Duplicar uma matéria existente criando um novo rascunho' })
+  async duplicate(@Param('id') id: string, @CurrentUser() user: any) {
+    const userId = user?.id || user?._id || user?.sub;
+    return this.newsAdminService.duplicate(id, userId);
   }
 
   @Delete(':id')

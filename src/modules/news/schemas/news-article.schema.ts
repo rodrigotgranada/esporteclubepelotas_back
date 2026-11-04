@@ -81,6 +81,32 @@ export class NewsArticle {
   @Prop({ type: Number, default: 0 })
   viewsCount: number;
 
+  @Prop({ type: Boolean, default: true })
+  allowReactions: boolean;
+
+  @Prop({ type: Boolean, default: true })
+  allowComments: boolean;
+
+  @Prop({
+    type: {
+      wolf: { type: Number, default: 0 },
+      fire: { type: Number, default: 0 },
+      clap: { type: Number, default: 0 },
+      heart: { type: Number, default: 0 },
+    },
+    default: { wolf: 0, fire: 0, clap: 0, heart: 0 },
+    _id: false,
+  })
+  reactions: {
+    wolf: number;
+    fire: number;
+    clap: number;
+    heart: number;
+  };
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  lastEditedBy?: Types.ObjectId;
+
   @Prop({ type: Boolean, default: true, index: true })
   isActive: boolean;
 }

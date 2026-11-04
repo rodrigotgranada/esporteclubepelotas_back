@@ -264,7 +264,7 @@ export class NewsAdminService {
     return this.mapArticle(saved);
   }
 
-  async update(id: string, updateNewsDto: UpdateNewsDto) {
+  async update(id: string, updateNewsDto: UpdateNewsDto, userId?: string) {
     const article = await this.adminFindById(id);
 
     let slug = article.slug;
@@ -362,6 +362,10 @@ export class NewsAdminService {
       updatePayload.tags = updateNewsDto.tags.map((t) =>
         t.trim().startsWith('#') ? t.trim() : `#${t.trim()}`
       );
+    }
+
+    if (userId) {
+      updatePayload.lastEditedBy = new Types.ObjectId(userId);
     }
 
     const updated = await this.articleModel
@@ -525,5 +529,47 @@ export class NewsAdminService {
       ...content,
       content: await processNodes(content.content),
     };
+  }
+
+  async duplicate(id: string, userId: string) {
+    const original = await this.articleModel.findById(id);
+    if (!original || !original.isActive) {
+      throw new NotFoundException('Matéria original não encontrada.');
+    }
+
+    const timestamp = Date.now().toString().slice(-4);
+    const newSlug = `${original.slug}-copia-${timestamp}`;
+    const newTitle = `${original.title} (Cópia)`;
+
+    const duplicated = await this.articleModel.create({
+      title: newTitle,
+      subtitle: original.subtitle,
+      slug: newSlug,
+      previousSlugs: [],
+      coverImage: original.coverImage,
+      coverCaption: original.coverCaption,
+      content: original.content,
+      summary: original.summary,
+      category: original.category,
+      tags: original.tags,
+      status: NewsStatus.DRAFT,
+      isFeatured: false,
+      featuredSlot: NewsFeaturedSlot.NONE,
+      isPinned: false,
+      reporterName: original.reporterName,
+      photographerName: original.photographerName,
+      author: new Types.ObjectId(userId),
+      lastEditedBy: new Types.ObjectId(userId),
+      gallery: original.gallery,
+      youtubeVideoUrl: original.youtubeVideoUrl,
+      allowReactions: original.allowReactions ?? true,
+      allowComments: original.allowComments ?? true,
+      reactions: { wolf: 0, fire: 0, clap: 0, heart: 0 },
+      viewsCount: 0,
+      isActive: true,
+    });
+
+    const populated = await duplicated.populate('category', 'name slug');
+    return this.mapArticle(populated);
   }
 }

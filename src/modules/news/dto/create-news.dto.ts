@@ -102,5 +102,15 @@ export class CreateNewsDto {
   @IsString()
   @IsOptional()
   youtubeVideoUrl?: string;
+
+  @ApiPropertyOptional({ description: 'Permitir reações dos torcedores nesta matéria', default: true })
+  @IsBoolean()
+  @IsOptional()
+  allowReactions?: boolean;
+
+  @ApiPropertyOptional({ description: 'Permitir comentários de usuários cadastrados nesta matéria', default: true })
+  @IsBoolean()
+  @IsOptional()
+  allowComments?: boolean;
 }
 
