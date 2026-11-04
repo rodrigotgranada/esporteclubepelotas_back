@@ -7,7 +7,7 @@ import { Role, RoleDocument } from '../modules/roles/schemas/role.schema.js';
 import { SystemModule, SystemModuleDocument } from '../modules/system-modules/schemas/system-module.schema.js';
 import { Theme, ThemeDocument } from '../modules/themes/schemas/theme.schema.js';
 import { Setting, SettingDocument } from '../modules/settings/schemas/setting.schema.js';
-import { NewsArticle, NewsArticleDocument, NewsStatus } from '../modules/news/schemas/news-article.schema.js';
+import { NewsArticle, NewsArticleDocument, NewsStatus, NewsFeaturedSlot } from '../modules/news/schemas/news-article.schema.js';
 import { NewsCategory, NewsCategoryDocument } from '../modules/news/schemas/news-category.schema.js';
 import * as bcrypt from 'bcrypt';
 
@@ -496,6 +496,7 @@ async function bootstrap() {
       tags: ['#Gauchão', '#Lobo', '#BocaDoLobo', '#Clássico'],
       status: NewsStatus.PUBLISHED,
       isFeatured: true,
+      featuredSlot: NewsFeaturedSlot.MAIN,
       author: authorId,
       publishedAt: new Date(),
       viewsCount: 142,

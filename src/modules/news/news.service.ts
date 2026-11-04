@@ -222,7 +222,10 @@ export class NewsService {
     const mainArticles = await this.articleModel
       .find({
         ...publishCondition,
-        featuredSlot: NewsFeaturedSlot.MAIN,
+        $or: [
+          { featuredSlot: NewsFeaturedSlot.MAIN },
+          { isFeatured: true, featuredSlot: { $nin: [NewsFeaturedSlot.SECONDARY, NewsFeaturedSlot.NONE] } },
+        ],
       })
       .sort({ publishedAt: -1 })
       .limit(1)
