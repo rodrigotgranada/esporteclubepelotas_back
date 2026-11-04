@@ -117,4 +117,53 @@ describe('IdolsService (Public)', () => {
       expect(res[0].name).toBe('Ídolo 1');
     });
   });
+
+  describe('getPrevNext', () => {
+    it('should return previous and next idol relative to current', async () => {
+      mockIdolModel.findOne
+        // 1st call: current
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnThis(),
+          lean: vi.fn().mockReturnThis(),
+          exec: vi.fn().mockResolvedValue({
+            _id: '2',
+            order: 2,
+            startYear: 1980,
+            slug: 'idolo-2',
+            name: 'Ídolo 2',
+          }),
+        })
+        // 2nd call: prev
+        .mockReturnValueOnce({
+          sort: vi.fn().mockReturnThis(),
+          lean: vi.fn().mockReturnThis(),
+          exec: vi.fn().mockResolvedValue({
+            _id: '1',
+            order: 1,
+            startYear: 1970,
+            slug: 'idolo-1',
+            name: 'Ídolo 1',
+          }),
+        })
+        // 3rd call: next
+        .mockReturnValueOnce({
+          sort: vi.fn().mockReturnThis(),
+          lean: vi.fn().mockReturnThis(),
+          exec: vi.fn().mockResolvedValue({
+            _id: '3',
+            order: 3,
+            startYear: 1990,
+            slug: 'idolo-3',
+            name: 'Ídolo 3',
+          }),
+        });
+
+      const res = await service.getPrevNext('idolo-2');
+      expect(res.previous).not.toBeNull();
+      expect(res.previous.name).toBe('Ídolo 1');
+      expect(res.next).not.toBeNull();
+      expect(res.next.name).toBe('Ídolo 3');
+    });
+  });
 });
+

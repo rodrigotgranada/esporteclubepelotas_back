@@ -40,3 +40,4 @@ export async function generateUniqueIdolSlug(
 
   return `${baseSlug}-${counter}`;
 }
+

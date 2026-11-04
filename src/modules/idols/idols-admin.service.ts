@@ -109,6 +109,19 @@ export class IdolsAdminService {
       deathDate: dto.deathDate ? new Date(dto.deathDate) : undefined,
     };
 
+    if (dto.galleryItems && dto.galleryItems.length > 0) {
+      idolData.gallery = dto.galleryItems.map((i) => i.url);
+    } else if (dto.gallery && dto.gallery.length > 0) {
+      idolData.galleryItems = dto.gallery.map((url) => ({ url, caption: '' }));
+    }
+
+    if (dto.periods && dto.periods.length > 0) {
+      idolData.startYear = dto.periods[0].startYear;
+      if (dto.periods[dto.periods.length - 1].endYear) {
+        idolData.endYear = dto.periods[dto.periods.length - 1].endYear;
+      }
+    }
+
     if (userId && Types.ObjectId.isValid(userId)) {
       idolData.createdBy = new Types.ObjectId(userId);
       idolData.lastEditedBy = new Types.ObjectId(userId);
@@ -139,7 +152,22 @@ export class IdolsAdminService {
     if (dto.nickname !== undefined) idol.nickname = dto.nickname;
     if (dto.category !== undefined) idol.category = dto.category;
     if (dto.photoUrl !== undefined) idol.photoUrl = dto.photoUrl;
-    if (dto.gallery !== undefined) idol.gallery = dto.gallery;
+    if (dto.galleryItems !== undefined) {
+      idol.galleryItems = dto.galleryItems as any;
+      idol.gallery = dto.galleryItems.map((i) => i.url);
+    } else if (dto.gallery !== undefined) {
+      idol.gallery = dto.gallery;
+      idol.galleryItems = dto.gallery.map((url) => ({ url, caption: '' }));
+    }
+    if (dto.periods !== undefined) {
+      idol.periods = dto.periods as any;
+      if (dto.periods.length > 0 && dto.startYear === undefined) {
+        idol.startYear = dto.periods[0].startYear;
+        if (dto.periods[dto.periods.length - 1].endYear !== undefined) {
+          idol.endYear = dto.periods[dto.periods.length - 1].endYear;
+        }
+      }
+    }
     if (dto.startYear !== undefined) idol.startYear = dto.startYear;
     if (dto.endYear !== undefined) idol.endYear = dto.endYear;
     if (dto.isActiveInClub !== undefined) idol.isActiveInClub = dto.isActiveInClub;
@@ -243,8 +271,16 @@ export class IdolsAdminService {
     }
 
     idol.gallery = [...(idol.gallery || []), ...uploadedUrls];
+    idol.galleryItems = [
+      ...(idol.galleryItems || []),
+      ...uploadedUrls.map((url) => ({ url, caption: '' })),
+    ];
     await idol.save();
 
-    return { gallery: idol.gallery, message: 'Fotos adicionadas à galeria histórica com sucesso.' };
+    return {
+      gallery: idol.gallery,
+      galleryItems: idol.galleryItems,
+      message: 'Fotos adicionadas à galeria histórica com sucesso.',
+    };
   }
 }

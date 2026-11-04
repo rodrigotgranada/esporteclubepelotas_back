@@ -35,3 +35,4 @@ export class QueryIdolsDto {
   @IsOptional()
   isFeatured?: boolean;
 }
+

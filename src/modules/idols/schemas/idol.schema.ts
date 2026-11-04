@@ -80,6 +80,29 @@ export class IdolFanStats {
 }
 export const IdolFanStatsSchema = SchemaFactory.createForClass(IdolFanStats);
 
+@Schema({ _id: false })
+export class IdolGalleryItem {
+  @Prop({ type: String, required: true, trim: true })
+  url: string;
+
+  @Prop({ type: String, trim: true, default: '' })
+  caption?: string;
+}
+export const IdolGalleryItemSchema = SchemaFactory.createForClass(IdolGalleryItem);
+
+@Schema({ _id: false })
+export class IdolPeriod {
+  @Prop({ type: Number, required: true })
+  startYear: number;
+
+  @Prop({ type: Number })
+  endYear?: number;
+
+  @Prop({ type: String, trim: true })
+  label?: string;
+}
+export const IdolPeriodSchema = SchemaFactory.createForClass(IdolPeriod);
+
 @Schema({ timestamps: true, collection: 'idols' })
 export class Idol {
   @Prop({ type: String, required: true, trim: true })
@@ -106,11 +129,17 @@ export class Idol {
   @Prop({ type: [String], default: [] })
   gallery: string[];
 
+  @Prop({ type: [IdolGalleryItemSchema], default: [] })
+  galleryItems?: IdolGalleryItem[];
+
   @Prop({ type: Number, required: true })
   startYear: number;
 
   @Prop({ type: Number })
   endYear?: number;
+
+  @Prop({ type: [IdolPeriodSchema], default: [] })
+  periods?: IdolPeriod[];
 
   @Prop({ type: Boolean, default: false })
   isActiveInClub: boolean;

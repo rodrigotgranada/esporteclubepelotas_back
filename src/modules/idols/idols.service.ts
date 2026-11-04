@@ -117,4 +117,60 @@ export class IdolsService {
 
     return idols.map((doc) => IdolsMapperHelper.mapIdol(doc));
   }
+
+  /**
+   * Retorna o ídolo anterior e próximo na ordenação do Memorial.
+   */
+  async getPrevNext(slug: string) {
+    const isModuleActive = await this.systemModulesService.isModuleActive('idols');
+    if (!isModuleActive) {
+      throw new NotFoundException('Módulo de Ídolos está temporariamente indisponível.');
+    }
+
+    const current = await this.idolModel
+      .findOne({ slug: slug.toLowerCase().trim(), isActive: true })
+      .select('order startYear name slug')
+      .lean()
+      .exec();
+
+    if (!current) {
+      throw new NotFoundException('Ídolo não encontrado no Memorial.');
+    }
+
+    const currentOrder = current.order ?? 0;
+    const currentYear = current.startYear ?? 0;
+    const currentId = current._id;
+
+    const prev = await this.idolModel
+      .findOne({
+        isActive: true,
+        $or: [
+          { order: { $lt: currentOrder } },
+          { order: currentOrder, startYear: { $lt: currentYear } },
+          { order: currentOrder, startYear: currentYear, _id: { $lt: currentId } },
+        ],
+      })
+      .sort({ order: -1, startYear: -1, _id: -1 })
+      .lean()
+      .exec();
+
+    const next = await this.idolModel
+      .findOne({
+        isActive: true,
+        $or: [
+          { order: { $gt: currentOrder } },
+          { order: currentOrder, startYear: { $gt: currentYear } },
+          { order: currentOrder, startYear: currentYear, _id: { $gt: currentId } },
+        ],
+      })
+      .sort({ order: 1, startYear: 1, _id: 1 })
+      .lean()
+      .exec();
+
+    return {
+      previous: prev ? IdolsMapperHelper.mapIdol(prev) : null,
+      next: next ? IdolsMapperHelper.mapIdol(next) : null,
+    };
+  }
 }
+

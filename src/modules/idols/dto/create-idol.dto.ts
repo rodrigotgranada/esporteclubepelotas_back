@@ -120,6 +120,36 @@ export class FanStatsDto {
   trademark?: string;
 }
 
+export class GalleryItemDto {
+  @ApiProperty({ example: 'https://storage.../foto1.webp' })
+  @IsString()
+  @IsNotEmpty()
+  url: string;
+
+  @ApiPropertyOptional({ example: 'Comemorando gol na Boca do Lobo em 1964' })
+  @IsString()
+  @IsOptional()
+  caption?: string;
+}
+
+export class PeriodDto {
+  @ApiProperty({ example: 1960 })
+  @Type(() => Number)
+  @IsInt()
+  startYear: number;
+
+  @ApiPropertyOptional({ example: 1965 })
+  @Type(() => Number)
+  @IsInt()
+  @IsOptional()
+  endYear?: number;
+
+  @ApiPropertyOptional({ example: 'Primeira passagem' })
+  @IsString()
+  @IsOptional()
+  label?: string;
+}
+
 export class CreateIdolDto {
   @ApiProperty({ example: 'Flávio Almeida da Silva' })
   @IsString()
@@ -151,6 +181,13 @@ export class CreateIdolDto {
   @IsOptional()
   gallery?: string[];
 
+  @ApiPropertyOptional({ type: [GalleryItemDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => GalleryItemDto)
+  @IsOptional()
+  galleryItems?: GalleryItemDto[];
+
   @ApiProperty({ example: 1960 })
   @Type(() => Number)
   @IsInt()
@@ -162,6 +199,13 @@ export class CreateIdolDto {
   @IsInt()
   @IsOptional()
   endYear?: number;
+
+  @ApiPropertyOptional({ type: [PeriodDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PeriodDto)
+  @IsOptional()
+  periods?: PeriodDto[];
 
   @ApiPropertyOptional({ example: false })
   @Type(() => Boolean)
@@ -230,3 +274,4 @@ export class CreateIdolDto {
   @IsOptional()
   order?: number;
 }
+

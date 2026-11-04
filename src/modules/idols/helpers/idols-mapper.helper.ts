@@ -14,8 +14,25 @@ export class IdolsMapperHelper {
       category: obj.category,
       photoUrl: obj.photoUrl || '',
       gallery: obj.gallery || [],
+      galleryItems:
+        obj.galleryItems && obj.galleryItems.length > 0
+          ? obj.galleryItems.map((item: any) => ({
+              url: typeof item === 'string' ? item : item.url,
+              caption: typeof item === 'string' ? '' : item.caption || '',
+            }))
+          : (obj.gallery || []).map((url: string) => ({ url, caption: '' })),
       startYear: obj.startYear,
       endYear: obj.endYear ?? null,
+      periods:
+        obj.periods && obj.periods.length > 0
+          ? obj.periods.map((p: any) => ({
+              startYear: Number(p.startYear),
+              endYear: p.endYear ? Number(p.endYear) : null,
+              label: p.label || '',
+            }))
+          : obj.startYear
+            ? [{ startYear: Number(obj.startYear), endYear: obj.endYear ? Number(obj.endYear) : null, label: '' }]
+            : [],
       isActiveInClub: Boolean(obj.isActiveInClub),
       birthDate: obj.birthDate ? new Date(obj.birthDate).toISOString() : null,
       deathDate: obj.deathDate ? new Date(obj.deathDate).toISOString() : null,
@@ -80,3 +97,4 @@ export class IdolsMapperHelper {
     };
   }
 }
+

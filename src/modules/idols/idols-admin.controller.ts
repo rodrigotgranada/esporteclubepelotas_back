@@ -83,3 +83,4 @@ export class IdolsAdminController {
     return this.idolsAdminService.uploadGallery(id, files);
   }
 }
+

@@ -20,9 +20,16 @@ export class IdolsController {
     return this.idolsService.findFeatured(limit ? Number(limit) : 4);
   }
 
+  @Get(':slug/prev-next')
+  @ApiOperation({ summary: 'Obter ídolo anterior e próximo na linha do Memorial' })
+  async getPrevNext(@Param('slug') slug: string) {
+    return this.idolsService.getPrevNext(slug);
+  }
+
   @Get(':slug')
   @ApiOperation({ summary: 'Obter perfil detalhado de um ídolo por slug (público)' })
   async findBySlug(@Param('slug') slug: string) {
     return this.idolsService.findBySlug(slug);
   }
 }
+
